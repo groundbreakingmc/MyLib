@@ -26,6 +26,7 @@ import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Function;
 
+@SuppressWarnings("unused")
 public abstract class ConfigProcessor {
 
     protected final Plugin plugin;
@@ -35,7 +36,7 @@ public abstract class ConfigProcessor {
     private Colorizer colorizer;
     protected final Map<String, Field> sections;
 
-    protected ConfigProcessor(final Plugin plugin, final Logger logger, final boolean debug) throws IllegalAccessException {
+    protected ConfigProcessor(final Plugin plugin, final Logger logger, final boolean debug) {
         this(plugin, logger, debug, null);
     }
 
