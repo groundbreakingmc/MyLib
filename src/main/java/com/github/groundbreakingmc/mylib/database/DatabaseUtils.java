@@ -4,16 +4,31 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.experimental.UtilityClass;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.sql.*;
 
 @UtilityClass
+@SuppressWarnings("unused")
 public class DatabaseUtils {
 
-    public static HikariDataSource createConnection(final Plugin plugin) {
+    public static HikariDataSource createConnection(final String jdbcUrl) {
+        return createConnection(jdbcUrl, null, null);
+    }
+
+    public static HikariDataSource createConnection(final @NotNull String jdbcUrl,
+                                                    final @Nullable String userName,
+                                                    final @Nullable String password) {
         final HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(getDriverUrl(plugin));
+        hikariConfig.setJdbcUrl(jdbcUrl);
+        if (userName != null) {
+            hikariConfig.setUsername(userName);
+        }
+        if (password != null) {
+            hikariConfig.setUsername(password);
+        }
         hikariConfig.setMinimumIdle(4);
         hikariConfig.setMaximumPoolSize(16);
         hikariConfig.setConnectionTimeout(10000);
@@ -23,9 +38,48 @@ public class DatabaseUtils {
         return new HikariDataSource(hikariConfig);
     }
 
-    private static String getDriverUrl(final Plugin plugin) {
+    public static String getSQLiteDriverUrl(final Plugin plugin) {
         final File dbFile = new File(plugin.getDataFolder() + File.separator + "database.db");
         return "jdbc:sqlite:" + dbFile;
+    }
+
+    public static String getMariaDBDriverUrl(final String hostName,
+                                             final String databaseName) {
+        return getMariaDBDriverUrl(hostName, databaseName, null);
+    }
+
+    public static String getMariaDBDriverUrl(final String hostName,
+                                             final String databaseName,
+                                             final String connectionParams) {
+        return createDriverUrl(
+                "jdbc:mariadb://",
+                hostName,
+                databaseName,
+                connectionParams == null ? "" : connectionParams
+        );
+    }
+
+    public static String getMySQLDriverUrl(final String hostName,
+                                           final String databaseName) {
+        return getMySQLDriverUrl(hostName, databaseName, null);
+    }
+
+    public static String getMySQLDriverUrl(final String hostName,
+                                           final String databaseName,
+                                           final String connectionParams) {
+        return createDriverUrl(
+                "jdbc:mysql://",
+                hostName,
+                databaseName,
+                connectionParams == null ? "" : connectionParams
+        );
+    }
+
+    private static String createDriverUrl(final String prefix,
+                                          final String hostName,
+                                          final String databaseName,
+                                          final String connectionParams) {
+        return prefix + hostName + "/" + databaseName + connectionParams;
     }
 
     public static void closeConnection(final HikariDataSource dataSource) {
