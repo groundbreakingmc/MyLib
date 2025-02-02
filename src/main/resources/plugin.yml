@@ -1,0 +1,13 @@
+name: ${name}
+version: ${version}
+description: ${description}
+
+main: com.github.groundbreakingmc.mylib.MyLib
+
+author: GroundbreakingMC
+website: ${scm.url}
+
+libraries:
+  - com.github.ben-manes.caffeine:caffeine:3.1.8
+  - org.spongepowered:configurate-yaml:4.0.0
+  - com.zaxxer:HikariCP:5.1.0
