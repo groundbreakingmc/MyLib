@@ -15,4 +15,11 @@ public class ImmutableCase<L, R> {
         return this.left.equals(other.left)
                 && this.right.equals(other.right);
     }
+
+    @Override
+    public int hashCode() {
+        int result = 31 * 17 + (this.left == null ? 0 : this.left.hashCode());
+        result = 31 * result + (this.right == null ? 0 : this.right.hashCode());
+        return result;
+    }
 }
