@@ -16,6 +16,10 @@ public final class ModernLogger implements Logger {
         this.logger = ComponentLogger.logger(plugin.getLogger().getName());
     }
 
+    public ModernLogger(final String name) {
+        this.logger = ComponentLogger.logger(name);
+    }
+
     public void info(final String msg) {
         this.logger.info(msg != null ? LEGACY_COMPONENT_SERIALIZER.deserialize(msg) : NULL_TEXT);
     }
