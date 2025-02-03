@@ -155,7 +155,8 @@ public abstract class ConfigProcessor {
             return TitleSettings.get(valueNode.getString());
         }
         if (Map.class.isAssignableFrom(fieldType)) {
-            return TitleSettings.get(valueNode.getString());
+            this.logger.warn("Maps are not supported yet!");
+            return null;
         }
 
         return null;
