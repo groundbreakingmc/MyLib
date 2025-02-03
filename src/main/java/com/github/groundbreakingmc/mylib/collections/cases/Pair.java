@@ -5,14 +5,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 @AllArgsConstructor @Getter @Setter
-public class Case<L, R> {
+public class Pair<L, R> {
     private L left;
     private R right;
 
     public boolean equals(final Object object) {
         if (this == object) return true;
         if (object == null || getClass() != object.getClass()) return false;
-        final Case<?, ?> other = (Case<?, ?>) object;
+        final Pair<?, ?> other = (Pair<?, ?>) object;
         return this.left.equals(other.left)
                 && this.right.equals(other.right);
     }

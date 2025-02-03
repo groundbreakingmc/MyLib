@@ -4,14 +4,14 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor @Getter
-public class ImmutableCase<L, R> {
+public class ImmutablePair<L, R> {
     private final L left;
     private final R right;
 
     public boolean equals(final Object object) {
         if (this == object) return true;
         if (object == null || getClass() != object.getClass()) return false;
-        final ImmutableCase<?, ?> other = (ImmutableCase<?, ?>) object;
+        final ImmutablePair<?, ?> other = (ImmutablePair<?, ?>) object;
         return this.left.equals(other.left)
                 && this.right.equals(other.right);
     }
