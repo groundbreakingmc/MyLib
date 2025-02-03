@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.expiringcollections;
+package com.github.groundbreakingmc.mylib.collections.expiring;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
