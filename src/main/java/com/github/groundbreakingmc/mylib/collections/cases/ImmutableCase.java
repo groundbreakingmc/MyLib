@@ -9,14 +9,8 @@ public class ImmutableCase<L, R> {
     private final R right;
 
     public boolean equals(final Object object) {
-        if (object == this) {
-            return true;
-        }
-
-        if (!(object instanceof ImmutableCase)) {
-            return false;
-        }
-
+        if (this == object) return true;
+        if (object == null || getClass() != object.getClass()) return false;
         final ImmutableCase<?, ?> other = (ImmutableCase<?, ?>) object;
         return this.left.equals(other.left)
                 && this.right.equals(other.right);

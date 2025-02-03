@@ -10,14 +10,8 @@ public class Case<L, R> {
     private R right;
 
     public boolean equals(final Object object) {
-        if (object == this) {
-            return true;
-        }
-
-        if (!(object instanceof Case)) {
-            return false;
-        }
-
+        if (this == object) return true;
+        if (object == null || getClass() != object.getClass()) return false;
         final Case<?, ?> other = (Case<?, ?>) object;
         return this.left.equals(other.left)
                 && this.right.equals(other.right);
