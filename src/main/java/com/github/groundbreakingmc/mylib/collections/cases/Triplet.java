@@ -6,6 +6,7 @@ import lombok.Setter;
 
 @AllArgsConstructor @Getter @Setter
 public class Triplet<L, M, R> {
+
     private L left;
     private M middle;
     private R right;

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor @Getter
 public class ImmutableTriplet<L, M, R> {
+
     private final L left;
     private final M middle;
     private final R right;

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor @Getter
 public class ImmutablePair<L, R> {
+
     private final L left;
     private final R right;
 
