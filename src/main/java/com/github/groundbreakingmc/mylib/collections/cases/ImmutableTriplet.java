@@ -19,6 +19,10 @@ public class ImmutableTriplet<L, M, R> {
                 && this.right.equals(other.right);
     }
 
+    public ImmutableTriplet<L, M, R> clone() {
+        return new ImmutableTriplet<>(this.left, this.middle, this.right);
+    }
+
     @Override
     public int hashCode() {
         int result = 31 * 17 + (this.left == null ? 0 : this.left.hashCode());

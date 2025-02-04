@@ -20,6 +20,10 @@ public class Triplet<L, M, R> {
                 && this.right.equals(other.right);
     }
 
+    public Triplet<L, M, R> clone() {
+        return new Triplet<>(this.left, this.middle, this.right);
+    }
+
     @Override
     public int hashCode() {
         int result = 31 * 17 + (this.left == null ? 0 : this.left.hashCode());

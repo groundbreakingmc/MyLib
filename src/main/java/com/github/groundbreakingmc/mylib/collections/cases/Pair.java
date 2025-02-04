@@ -18,6 +18,10 @@ public class Pair<L, R> {
                 && this.right.equals(other.right);
     }
 
+    public Pair<L, R> clone() {
+        return new Pair<>(this.left, this.right);
+    }
+
     @Override
     public int hashCode() {
         int result = 31 * 17 + (this.left == null ? 0 : this.left.hashCode());

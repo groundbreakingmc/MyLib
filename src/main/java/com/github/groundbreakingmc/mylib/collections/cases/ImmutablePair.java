@@ -17,6 +17,10 @@ public class ImmutablePair<L, R> {
                 && this.right.equals(other.right);
     }
 
+    public ImmutablePair<L, R> clone() {
+        return new ImmutablePair<>(this.left, this.right);
+    }
+
     @Override
     public int hashCode() {
         int result = 31 * 17 + (this.left == null ? 0 : this.left.hashCode());
