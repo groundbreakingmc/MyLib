@@ -19,11 +19,11 @@ import java.util.concurrent.CompletableFuture;
 @UtilityClass
 public final class LuckPermsUtils {
 
-    private static final LuckPerms LUCK_PERMS = BukkitProviderUtils.getProvider(Bukkit.getServicesManager(), LuckPerms.class);
+    private static LuckPerms LUCK_PERMS;
 
     public static void givePermission(final UUID playerUUID, final String permission) {
         if (LUCK_PERMS == null) {
-            return;
+            setLuckPerms();
         }
 
         LUCK_PERMS.getUserManager().loadUser(playerUUID).thenAccept(user -> {
@@ -40,6 +40,10 @@ public final class LuckPermsUtils {
     }
 
     public static void setPlayerGroup(final UUID playerUUID, final String groupName, final Duration duration) {
+        if (LUCK_PERMS == null) {
+            setLuckPerms();
+        }
+
         final CompletableFuture<User> userFuture = LUCK_PERMS.getUserManager().loadUser(playerUUID);
         userFuture.thenAccept(user -> {
             if (user == null) {
@@ -81,7 +85,19 @@ public final class LuckPermsUtils {
         });
     }
 
+    private static void setLuckPerms() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+            throw new UnsupportedOperationException("LuckPerms is not enabled!");
+        }
+
+        LUCK_PERMS = BukkitProviderUtils.getProvider(Bukkit.getServicesManager(), LuckPerms.class);
+    }
+
     public static LuckPerms getLuckPerms() {
+        if (LUCK_PERMS == null) {
+            setLuckPerms();
+        }
+
         return LuckPermsUtils.LUCK_PERMS;
     }
 }
