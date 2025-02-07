@@ -24,7 +24,7 @@ import java.util.Set;
 @UtilityClass
 public final class WorldGuardUtils {
 
-    public static final RegionContainer REGION_CONTAINER = WorldGuard.getInstance().getPlatform().getRegionContainer();
+    public static final RegionContainer REGION_CONTAINER;
 
     @Nullable
     public static ApplicableRegionSet getApplicableRegions(final Location location) {
@@ -250,5 +250,11 @@ public final class WorldGuardUtils {
 
     public static ApplicableRegionSet getOverlappingRegion(final ProtectedRegion region, final World world) {
         return REGION_CONTAINER.get(BukkitAdapter.adapt(world)).getApplicableRegions(region);
+    }
+
+    static {
+        REGION_CONTAINER = Bukkit.getPluginManager().isPluginEnabled("WorldGuard")
+                ? WorldGuard.getInstance().getPlatform().getRegionContainer()
+                : null;
     }
 }

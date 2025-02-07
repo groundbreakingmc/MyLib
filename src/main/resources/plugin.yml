@@ -3,6 +3,13 @@ version: ${version}
 description: ${description}
 
 main: com.github.groundbreakingmc.mylib.MyLib
+loadafter:
+  - WorldGuard
+
+softdepend:
+  - WorldGuard
+  - LuckPerms
+  - Vault
 
 author: GroundbreakingMC
 website: ${scm.url}
