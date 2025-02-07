@@ -1,5 +1,7 @@
 package com.github.groundbreakingmc.mylib.utils.luckperms;
 
+import com.github.groundbreakingmc.mylib.utils.bukkit.BukkitProviderUtils;
+import lombok.Getter;
 import lombok.experimental.UtilityClass;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.model.user.User;
@@ -7,7 +9,6 @@ import net.luckperms.api.node.Node;
 import net.luckperms.api.node.types.InheritanceNode;
 import net.luckperms.api.node.types.PermissionNode;
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -15,17 +16,19 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+@SuppressWarnings("unused")
 @UtilityClass
 public class LuckPermsUtils {
 
-    private static LuckPerms luckPerms;
+    @Getter
+    private static final LuckPerms LUCK_PERMS = BukkitProviderUtils.getProvider(Bukkit.getServicesManager(), LuckPerms.class);
 
     public static void givePermission(final UUID playerUUID, final String permission) {
-        if (luckPerms == null) {
+        if (LUCK_PERMS == null) {
             return;
         }
 
-        luckPerms.getUserManager().loadUser(playerUUID).thenAccept(user -> {
+        LUCK_PERMS.getUserManager().loadUser(playerUUID).thenAccept(user -> {
             if (user != null) {
                 final Node node = PermissionNode.builder(permission)
                         .value(true)
@@ -33,13 +36,13 @@ public class LuckPermsUtils {
 
                 user.data().add(node);
 
-                luckPerms.getUserManager().saveUser(user);
+                LUCK_PERMS.getUserManager().saveUser(user);
             }
         });
     }
 
     public static void setPlayerGroup(final UUID playerUUID, final String groupName, final Duration duration) {
-        final CompletableFuture<User> userFuture = luckPerms.getUserManager().loadUser(playerUUID);
+        final CompletableFuture<User> userFuture = LUCK_PERMS.getUserManager().loadUser(playerUUID);
         userFuture.thenAccept(user -> {
             if (user == null) {
                 return;
@@ -76,15 +79,7 @@ public class LuckPermsUtils {
 
             user.data().add(newGroupNode.build());
 
-            luckPerms.getUserManager().saveUser(user);
+            LUCK_PERMS.getUserManager().saveUser(user);
         });
-    }
-
-    static {
-        final RegisteredServiceProvider<LuckPerms> registration = Bukkit.getServicesManager()
-                .getRegistration(LuckPerms.class);
-        if (registration != null) {
-            luckPerms = registration.getProvider();
-        }
     }
 }
