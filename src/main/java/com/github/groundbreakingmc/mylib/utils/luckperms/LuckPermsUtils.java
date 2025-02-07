@@ -1,7 +1,6 @@
 package com.github.groundbreakingmc.mylib.utils.luckperms;
 
 import com.github.groundbreakingmc.mylib.utils.bukkit.BukkitProviderUtils;
-import lombok.Getter;
 import lombok.experimental.UtilityClass;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.model.user.User;
@@ -18,9 +17,8 @@ import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("unused")
 @UtilityClass
-public class LuckPermsUtils {
+public final class LuckPermsUtils {
 
-    @Getter
     private static final LuckPerms LUCK_PERMS = BukkitProviderUtils.getProvider(Bukkit.getServicesManager(), LuckPerms.class);
 
     public static void givePermission(final UUID playerUUID, final String permission) {
@@ -81,5 +79,9 @@ public class LuckPermsUtils {
 
             LUCK_PERMS.getUserManager().saveUser(user);
         });
+    }
+
+    public static LuckPerms getLuckPerms() {
+        return LuckPermsUtils.LUCK_PERMS;
     }
 }
