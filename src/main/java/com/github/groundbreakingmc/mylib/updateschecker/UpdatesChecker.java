@@ -20,8 +20,8 @@ public final class UpdatesChecker {
 
     @Getter
     @Accessors(fluent = true)
-    private static boolean hasUpdate = false;
-    private static String downloadLink = null;
+    private boolean hasUpdate = false;
+    private String downloadLink = null;
 
     public UpdatesChecker(final Plugin plugin, final Logger logger, final String url, final String issueURL, final String updateCommand) {
         this.plugin = plugin;
@@ -45,12 +45,12 @@ public final class UpdatesChecker {
                     final String[] body = reader.readLine().split("\n", 2);
                     final String[] versionInfo = body[0].split("->");
 
-                    if (hasUpdate = this.isHigher(versionInfo[0])) {
+                    if (this.hasUpdate = this.isHigher(versionInfo[0])) {
                         if (!commandCall) {
                             this.logUpdate(body[1].split("\n"), versionInfo[0], downloadUpdate);
                         }
 
-                        if (downloadUpdate && (downloadLink = versionInfo[1]) != null) {
+                        if (downloadUpdate && (this.downloadLink = versionInfo[1]) != null) {
                             this.downloadJar(false);
                         }
 
@@ -77,17 +77,17 @@ public final class UpdatesChecker {
     }
 
     public void downloadJar(final boolean commandCall) {
-        if (downloadLink == null) {
+        if (this.downloadLink == null) {
             this.check(true, commandCall);
             return;
-        } else if (downloadLink.isEmpty()) {
+        } else if (this.downloadLink.isEmpty()) {
             this.logger.warn("Download link for new version of the plugin is empty!.");
             this.logger.warn(this.errorMessage);
             return;
         }
 
         try {
-            final URL url = new URL(downloadLink);
+            final URL url = new URL(this.downloadLink);
             final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(30000);
@@ -96,7 +96,7 @@ public final class UpdatesChecker {
             final int responseCode = connection.getResponseCode();
             if (responseCode == 200) {
                 final File updateFolder = Bukkit.getUpdateFolderFile();
-                final String jarFileName = new File(plugin.getClass().getProtectionDomain().getCodeSource().getLocation().getPath()).getName();
+                final String jarFileName = new File(this.plugin.getClass().getProtectionDomain().getCodeSource().getLocation().getPath()).getName();
                 final File outputFile = new File(updateFolder, jarFileName);
 
                 final long totalSize = connection.getContentLengthLong();
