@@ -25,6 +25,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 @SuppressWarnings("unused")
 public abstract class ConfigProcessor {
@@ -153,6 +154,9 @@ public abstract class ConfigProcessor {
         }
         if (TitleSettings.class.isAssignableFrom(fieldType)) {
             return TitleSettings.get(valueNode.getString());
+        }
+        if (Pattern.class.isAssignableFrom(fieldType)) {
+            return Pattern.compile(valueNode.getString());
         }
         if (Map.class.isAssignableFrom(fieldType)) {
             this.logger.warn("Maps are not supported yet!");
