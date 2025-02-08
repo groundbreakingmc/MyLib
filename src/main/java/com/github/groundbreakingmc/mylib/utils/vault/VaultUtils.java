@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.ServicesManager;
 
 @UtilityClass
+@SuppressWarnings("unused")
 public final class VaultUtils {
 
     private static Chat chat;
