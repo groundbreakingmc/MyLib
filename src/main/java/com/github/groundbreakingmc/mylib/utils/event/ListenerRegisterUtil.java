@@ -44,7 +44,7 @@ public final class ListenerRegisterUtil {
     }
 
     public static boolean unregister(final Listener listener) {
-        if (REGISTERED.remove(listener) != null) {
+        if (REGISTERED.remove(listener) == null) {
             return false;
         }
 
