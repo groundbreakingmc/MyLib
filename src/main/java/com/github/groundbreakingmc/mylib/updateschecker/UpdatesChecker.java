@@ -1,8 +1,6 @@
 package com.github.groundbreakingmc.mylib.updateschecker;
 
 import com.github.groundbreakingmc.mylib.logger.Logger;
-import lombok.Getter;
-import lombok.experimental.Accessors;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -10,7 +8,8 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public final class UpdatesChecker {
+@SuppressWarnings("unused")
+public class UpdatesChecker {
 
     private final Plugin plugin;
     private final Logger logger;
@@ -18,16 +17,18 @@ public final class UpdatesChecker {
     private final String errorMessage;
     private final String updateCommand;
 
-    @Getter
-    @Accessors(fluent = true)
-    private boolean hasUpdate = false;
+    private int difference = 0;
     private String downloadLink = null;
 
-    public UpdatesChecker(final Plugin plugin, final Logger logger, final String url, final String issueURL, final String updateCommand) {
+    public UpdatesChecker(final Plugin plugin,
+                          final Logger logger,
+                          final String url,
+                          final String issueURL,
+                          final String updateCommand) {
         this.plugin = plugin;
         this.logger = logger;
         this.stringURL = url;
-        this.errorMessage = "Please create an issue " + issueURL + " and report this error.";
+        this.errorMessage = "Please create an issue on " + issueURL + " and report this error.";
         this.updateCommand = updateCommand;
     }
 
@@ -45,7 +46,8 @@ public final class UpdatesChecker {
                     final String[] body = reader.readLine().split("\n", 2);
                     final String[] versionInfo = body[0].split("->");
 
-                    if (this.hasUpdate = this.isHigher(versionInfo[0])) {
+                    this.difference = this.getDifference(versionInfo[0]);
+                    if (difference != 0) {
                         if (!commandCall) {
                             this.logUpdate(body[1].split("\n"), versionInfo[0], downloadUpdate);
                         }
@@ -63,17 +65,36 @@ public final class UpdatesChecker {
                 this.logger.warn("Check was canceled with response code: " + responseCode + ".");
                 this.logger.warn(this.errorMessage);
             }
-        } catch (final IOException ex) {
-            this.logger.warn("Failed to check for updates: " + ex.getMessage());
+        } catch (final Exception ex) {
+            this.logger.warn("Failed to check for update: " + ex.getMessage());
+            this.logger.warn(this.errorMessage);
             ex.printStackTrace();
         }
     }
 
-    private boolean isHigher(final String newVersion) {
-        final String pluginVersion = this.plugin.getDescription().getVersion();
-        final int currentVersionNum = Integer.parseInt(pluginVersion.replace(".", ""));
-        final int newVersionNum = Integer.parseInt(newVersion.replace(".", ""));
-        return currentVersionNum < newVersionNum;
+    private int getDifference(final String newVersion) {
+        final String currentVersion = this.plugin.getDescription().getVersion();
+        try {
+            final String[] currentVersionParams = currentVersion.split("\\.");
+            final String[] newVersionParams = newVersion.split("\\.");
+            return currentVersionParams.length < newVersionParams.length
+                    ? this.getDifference(currentVersionParams, newVersionParams)
+                    : this.getDifference(newVersionParams, currentVersionParams);
+        } catch (final NumberFormatException ex) {
+            return currentVersion.equals(newVersion) ? 0 : -1;
+        }
+    }
+
+    private int getDifference(final String[] smaller, final String[] bigger) {
+        int difference = 0;
+        for (int i = 0; i < smaller.length; i++) {
+            final int result = Integer.parseInt(smaller[i]) - Integer.parseInt(bigger[i]);
+            if (result > 0) {
+                difference += result;
+            }
+        }
+
+        return difference;
     }
 
     public void downloadJar(final boolean commandCall) {
@@ -133,6 +154,7 @@ public final class UpdatesChecker {
     private void logUpdate(final String[] body, final String newVersion, final boolean isAutoUpdateEnabled) {
         this.logger.info("[UPDATE] ╓");
         this.logger.info("[UPDATE] ╠ New version found - v" + newVersion);
+        this.logger.info("[UPDATE] ╠ You are " + this.difference + " versions nehind");
         this.logger.info("[UPDATE] ╚╗");
 
         for (final String info : body) {
@@ -146,5 +168,9 @@ public final class UpdatesChecker {
         } else {
             this.logger.info("[UPDATE] ─╜");
         }
+    }
+
+    public boolean hasUpdate() {
+        return this.difference != 0;
     }
 }
