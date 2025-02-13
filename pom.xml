@@ -38,7 +38,7 @@
     </properties>
 
     <build>
-        <defaultGoal>clean package install:install-file -Dfile=target/MyLib-${project.version}.jar -DgroupId=com.github.groundbreakingmc -DartifactId=MyLib -Dversion=${project.version} -Dpackaging=jar</defaultGoal>
+        <defaultGoal>clean package</defaultGoal>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
