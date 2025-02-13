@@ -36,30 +36,6 @@ public class Database {
         this.dataSource = new HikariDataSource(hikariConfig);
     }
 
-    public HikariDataSource createConnection(final String jdbcUrl) {
-        return createConnection(jdbcUrl, null, null);
-    }
-
-    public HikariDataSource createConnection(final @NotNull String jdbcUrl,
-                                             final @Nullable String userName,
-                                             final @Nullable String password) {
-        final HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(jdbcUrl);
-        if (userName != null) {
-            hikariConfig.setUsername(userName);
-        }
-        if (password != null) {
-            hikariConfig.setUsername(password);
-        }
-        hikariConfig.setMinimumIdle(4);
-        hikariConfig.setMaximumPoolSize(16);
-        hikariConfig.setConnectionTimeout(10000);
-        hikariConfig.setIdleTimeout(600000);
-        hikariConfig.setMaxLifetime(1800000);
-
-        return new HikariDataSource(hikariConfig);
-    }
-
     public void closeConnection() {
         if (this.dataSource != null && !this.dataSource.isClosed()) {
             dataSource.close();
