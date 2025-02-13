@@ -109,7 +109,7 @@ public class Database {
             }
 
             try (final ResultSet result = statement.executeQuery()) {
-                return result.next();
+                return result.next() && result.getBoolean(1);
             }
         }
     }
