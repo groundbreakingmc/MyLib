@@ -76,7 +76,7 @@ public final class LuckPermsUtils {
             final InheritanceNode.Builder newGroupNode = InheritanceNode.builder(groupName);
 
             if (duration != null) {
-                newGroupNode.expiry(Duration.ofMillis(System.currentTimeMillis() + duration.toMillis()));
+                newGroupNode.expiry(duration);
             }
 
             user.data().add(newGroupNode.build());
