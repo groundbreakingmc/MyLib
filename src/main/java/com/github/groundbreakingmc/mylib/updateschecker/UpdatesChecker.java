@@ -1,6 +1,6 @@
 package com.github.groundbreakingmc.mylib.updateschecker;
 
-import com.github.groundbreakingmc.mylib.logger.Logger;
+import com.github.groundbreakingmc.mylib.logger.console.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -122,7 +122,7 @@ public class UpdatesChecker {
 
                 final long totalSize = connection.getContentLengthLong();
                 try (final InputStream inputStream = connection.getInputStream();
-                        final FileOutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+                     final FileOutputStream fileOutputStream = new FileOutputStream(outputFile)) {
 
                     final byte[] dataBuffer = new byte[1024];
                     int bytesRead;

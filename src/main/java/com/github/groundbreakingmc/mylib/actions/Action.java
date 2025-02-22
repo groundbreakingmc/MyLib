@@ -1,7 +1,7 @@
 package com.github.groundbreakingmc.mylib.actions;
 
 import com.github.groundbreakingmc.mylib.colorizer.Colorizer;
-import com.github.groundbreakingmc.mylib.logger.Logger;
+import com.github.groundbreakingmc.mylib.logger.console.Logger;
 import com.github.groundbreakingmc.mylib.utils.vault.VaultUtils;
 import lombok.Getter;
 import net.milkbowl.vault.chat.Chat;

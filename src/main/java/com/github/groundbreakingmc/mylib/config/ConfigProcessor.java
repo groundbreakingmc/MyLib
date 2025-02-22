@@ -5,7 +5,7 @@ import com.github.groundbreakingmc.mylib.colorizer.ColorizerFactory;
 import com.github.groundbreakingmc.mylib.config.annotations.Config;
 import com.github.groundbreakingmc.mylib.config.annotations.Section;
 import com.github.groundbreakingmc.mylib.config.annotations.Value;
-import com.github.groundbreakingmc.mylib.logger.Logger;
+import com.github.groundbreakingmc.mylib.logger.console.Logger;
 import com.github.groundbreakingmc.mylib.utils.player.settings.EffectSettings;
 import com.github.groundbreakingmc.mylib.utils.player.settings.SoundSettings;
 import com.github.groundbreakingmc.mylib.utils.player.settings.TitleSettings;

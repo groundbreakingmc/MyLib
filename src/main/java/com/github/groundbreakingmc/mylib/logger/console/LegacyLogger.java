@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.logger;
+package com.github.groundbreakingmc.mylib.logger.console;
 
 import org.bukkit.plugin.Plugin;
 

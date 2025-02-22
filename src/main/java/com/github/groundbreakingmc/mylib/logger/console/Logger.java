@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.logger;
+package com.github.groundbreakingmc.mylib.logger.console;
 
 public interface Logger {
 

@@ -1,6 +1,6 @@
 package com.github.groundbreakingmc.mylib.config;
 
-import com.github.groundbreakingmc.mylib.logger.Logger;
+import com.github.groundbreakingmc.mylib.logger.console.Logger;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.configuration.file.FileConfiguration;

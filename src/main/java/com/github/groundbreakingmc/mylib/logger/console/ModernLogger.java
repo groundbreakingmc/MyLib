@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.logger;
+package com.github.groundbreakingmc.mylib.logger.console;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;

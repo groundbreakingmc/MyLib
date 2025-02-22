@@ -1,6 +1,6 @@
 package com.github.groundbreakingmc.mylib.utils.server;
 
-import com.github.groundbreakingmc.mylib.logger.Logger;
+import com.github.groundbreakingmc.mylib.logger.console.Logger;
 import lombok.experimental.UtilityClass;
 import org.bukkit.plugin.Plugin;
 

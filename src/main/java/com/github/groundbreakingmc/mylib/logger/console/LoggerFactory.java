@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.logger;
+package com.github.groundbreakingmc.mylib.logger.console;
 
 import com.github.groundbreakingmc.mylib.utils.server.ServerInfo;
 import lombok.experimental.UtilityClass;
