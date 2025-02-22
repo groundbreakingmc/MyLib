@@ -5,8 +5,10 @@ import lombok.experimental.UtilityClass;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.model.user.User;
 import net.luckperms.api.node.Node;
+import net.luckperms.api.node.NodeType;
 import net.luckperms.api.node.types.InheritanceNode;
 import net.luckperms.api.node.types.PermissionNode;
+import net.luckperms.api.query.QueryOptions;
 import org.bukkit.Bukkit;
 
 import java.time.Duration;
@@ -21,22 +23,32 @@ public final class LuckPermsUtils {
 
     private static LuckPerms LUCK_PERMS;
 
-    public static void givePermission(final UUID playerUUID, final String permission) {
+    public static void givePermission(final UUID playerUUID, final String permission, final boolean value) {
+        givePermission(playerUUID, permission, value, null);
+    }
+
+    public static void givePermission(final UUID playerUUID, final String permission, final boolean value, final Duration duration) {
         if (LUCK_PERMS == null) {
             setLuckPerms();
         }
 
         LUCK_PERMS.getUserManager().loadUser(playerUUID).thenAccept(user -> {
             if (user != null) {
-                final Node node = PermissionNode.builder(permission)
-                        .value(true)
-                        .build();
+                final PermissionNode.Builder node = PermissionNode.builder(permission).value(value);
 
-                user.data().add(node);
+                if (duration != null) {
+                    node.expiry(duration);
+                }
+
+                user.data().add(node.build());
 
                 LUCK_PERMS.getUserManager().saveUser(user);
             }
         });
+    }
+
+    public static void setPlayerGroup(final UUID playerUUID, final String groupName) {
+        setPlayerGroup(playerUUID, groupName, null);
     }
 
     public static void setPlayerGroup(final UUID playerUUID, final String groupName, final Duration duration) {
@@ -50,18 +62,12 @@ public final class LuckPermsUtils {
                 return;
             }
 
-            final Optional<InheritanceNode> existingGroupNode = user.getNodes().stream()
-                    .filter(node -> node instanceof InheritanceNode)
-                    .map(node -> (InheritanceNode) node)
-                    .filter(node -> node.getGroupName().equalsIgnoreCase(groupName))
+            final Optional<InheritanceNode> existingGroupNode = user.getNodes(NodeType.INHERITANCE).stream()
+                    .filter(node -> node.getGroupName().equals(groupName))
                     .findFirst();
 
             if (existingGroupNode.isPresent() && duration != null) {
                 final InheritanceNode groupNode = existingGroupNode.get();
-
-                if (!groupNode.hasExpiry()) {
-                    return;
-                }
 
                 final Instant expiry = groupNode.getExpiry();
                 if (expiry != null) {
