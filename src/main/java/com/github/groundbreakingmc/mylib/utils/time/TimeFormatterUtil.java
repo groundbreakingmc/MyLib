@@ -42,12 +42,12 @@ public final class TimeFormatterUtil {
         private final String seconds;
 
         public TimeValues(@NotNull String days,
-                          @NotNull String minutes,
                           @NotNull String hours,
+                          @NotNull String minutes,
                           @NotNull String seconds) {
             this.days = days;
-            this.minutes = minutes;
             this.hours = hours;
+            this.minutes = minutes;
             this.seconds = seconds;
         }
     }
