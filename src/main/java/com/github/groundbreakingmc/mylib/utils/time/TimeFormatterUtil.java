@@ -1,8 +1,9 @@
 package com.github.groundbreakingmc.mylib.utils.time;
 
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.UtilityClass;
+import org.jetbrains.annotations.NotNull;
 
+@SuppressWarnings("unused")
 @UtilityClass
 public final class TimeFormatterUtil {
 
@@ -34,11 +35,20 @@ public final class TimeFormatterUtil {
         return formattedTime.toString();
     }
 
-    @RequiredArgsConstructor
     public static class TimeValues {
-        public final String days;
-        public final String minutes;
-        public final String hours;
-        public final String seconds;
+        private final String days;
+        private final String minutes;
+        private final String hours;
+        private final String seconds;
+
+        public TimeValues(@NotNull String days,
+                          @NotNull String minutes,
+                          @NotNull String hours,
+                          @NotNull String seconds) {
+            this.days = days;
+            this.minutes = minutes;
+            this.hours = hours;
+            this.seconds = seconds;
+        }
     }
 }
