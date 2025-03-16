@@ -5,10 +5,12 @@ import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 
+@SuppressWarnings("unused")
 @UtilityClass
 public final class DatabaseUtils {
 
     public String getSQLiteDriverUrl(final Plugin plugin) {
+        plugin.getDataFolder().mkdir();
         final File dbFile = new File(plugin.getDataFolder() + File.separator + "database.db");
         return "jdbc:sqlite:" + dbFile;
     }
