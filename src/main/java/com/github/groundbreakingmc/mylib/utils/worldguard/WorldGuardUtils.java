@@ -4,6 +4,8 @@ import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.bukkit.BukkitPlayer;
+import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
@@ -13,6 +15,7 @@ import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -246,6 +249,14 @@ public final class WorldGuardUtils {
 
         final RegionManager regionManager = REGION_CONTAINER.get(world);
         return regionManager.getRegion(regionName);
+    }
+
+    public static int getRegionCount(final Player whose, final World world) {
+        return getRegionCount(new BukkitPlayer(WorldGuardPlugin.inst(), whose), BukkitAdapter.adapt(world));
+    }
+
+    public static int getRegionCount(final BukkitPlayer whose, final com.sk89q.worldedit.world.World world) {
+        return REGION_CONTAINER.get(world).getRegionCountOfPlayer(whose);
     }
 
     public static ApplicableRegionSet getOverlappingRegion(final ProtectedRegion region, final World world) {
