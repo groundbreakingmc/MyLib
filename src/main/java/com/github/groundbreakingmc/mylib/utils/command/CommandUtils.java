@@ -1,7 +1,13 @@
 package com.github.groundbreakingmc.mylib.utils.command;
 
 import lombok.experimental.UtilityClass;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @UtilityClass
 public final class CommandUtils {
@@ -57,11 +63,10 @@ public final class CommandUtils {
     }
 
     /**
-     * @deprecated Use {@link org.bukkit.util.StringUtil.startsWithIgnoreCase(String, String) StringUtil.startsWithIgnoreCase(String)} instead
-     *
      * @param input
      * @param completion
      * @return
+     * @deprecated Use {@link org.bukkit.util.StringUtil.startsWithIgnoreCase(String, String) StringUtil.startsWithIgnoreCase(String)} instead
      */
     @Deprecated
     public static boolean startsWithIgnoreCase(final String input, final String completion) {
@@ -94,5 +99,22 @@ public final class CommandUtils {
         }
 
         return false;
+    }
+
+    public static List<String> tabCompletePlayerNames(final String[] args) {
+        return tabCompletePlayerNames(args[args.length - 1]);
+    }
+
+    public static List<String> tabCompletePlayerNames(final String input) {
+        final List<String> completions = new ArrayList<>();
+
+        for (final Player player : Bukkit.getOnlinePlayers()) {
+            final String playerName = player.getName();
+            if (StringUtil.startsWithIgnoreCase(playerName, input)) {
+                completions.add(playerName);
+            }
+        }
+
+        return completions;
     }
 }
