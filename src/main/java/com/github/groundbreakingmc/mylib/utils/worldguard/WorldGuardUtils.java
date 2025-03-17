@@ -8,6 +8,7 @@ import com.sk89q.worldguard.bukkit.BukkitPlayer;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.managers.RegionManager;
+import com.sk89q.worldguard.protection.managers.index.ConcurrentRegionIndex;
 import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
@@ -16,12 +17,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Set;
+import java.lang.reflect.Field;
+import java.util.*;
 
 @SuppressWarnings("unused")
 @UtilityClass
@@ -249,6 +250,30 @@ public final class WorldGuardUtils {
 
         final RegionManager regionManager = REGION_CONTAINER.get(world);
         return regionManager.getRegion(regionName);
+    }
+
+    @ApiStatus.Experimental @NotNull
+    public static Set<ProtectedRegion> getAllProtectedRegions(final UUID whoseUUID, final com.sk89q.worldedit.world.World world) {
+        Objects.requireNonNull(whoseUUID, "Player UUID can not be null!");
+        Objects.requireNonNull(world, "World UUID can not be null!");
+
+        final RegionManager regionManager = REGION_CONTAINER.get(world);
+        final HashSet<ProtectedRegion> regions = new HashSet<>();
+
+        try {
+            final Field field = regionManager.getClass().getDeclaredField("index");
+            final ConcurrentRegionIndex index = (ConcurrentRegionIndex) field.get(regionManager);
+
+            for (final ProtectedRegion region : index.values()) {
+                if (region.getOwners().contains(whoseUUID)) {
+                    regions.add(region);
+                }
+            }
+        } catch (final NoSuchFieldException | IllegalAccessException ex) {
+            ex.printStackTrace();
+        }
+
+        return regions;
     }
 
     public static int getRegionCount(final Player whose, final World world) {
