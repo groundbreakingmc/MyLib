@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 public final class ExpiringMap<K, V> {
 
@@ -32,6 +33,11 @@ public final class ExpiringMap<K, V> {
     public V getOrDefault(final K key, final V defaultValue) {
         final V value;
         return (value = this.cache.getIfPresent(key)) == null ? defaultValue : value;
+    }
+
+    public V getOrDefault(final K key, final Function<K, V> defaultValue) {
+        final V value;
+        return (value = this.cache.getIfPresent(key)) == null ? defaultValue.apply(key) : value;
     }
 
     public boolean containsKey(final K key) {
