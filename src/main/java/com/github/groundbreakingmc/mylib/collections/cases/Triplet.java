@@ -4,7 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-@AllArgsConstructor @Getter @Setter
+@AllArgsConstructor
+@Getter
+@Setter
 public class Triplet<L, M, R> {
 
     private L left;
@@ -22,6 +24,10 @@ public class Triplet<L, M, R> {
 
     public Triplet<L, M, R> clone() {
         return new Triplet<>(this.left, this.middle, this.right);
+    }
+
+    public static <L, M, R> Triplet<L, M, R> of(L left, M middle, R right) {
+        return new Triplet<>(left, middle, right);
     }
 
     @Override

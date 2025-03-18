@@ -4,7 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-@AllArgsConstructor @Getter @Setter
+@AllArgsConstructor
+@Getter
+@Setter
 public class Pair<L, R> {
 
     private L left;
@@ -20,6 +22,10 @@ public class Pair<L, R> {
 
     public Pair<L, R> clone() {
         return new Pair<>(this.left, this.right);
+    }
+
+    public static <L, R> Pair<L, R> of(L left, R right) {
+        return new Pair<>(left, right);
     }
 
     @Override

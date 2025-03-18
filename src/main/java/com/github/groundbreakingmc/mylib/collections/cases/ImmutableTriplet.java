@@ -3,7 +3,8 @@ package com.github.groundbreakingmc.mylib.collections.cases;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor @Getter
+@RequiredArgsConstructor
+@Getter
 public class ImmutableTriplet<L, M, R> {
 
     private final L left;
@@ -21,6 +22,10 @@ public class ImmutableTriplet<L, M, R> {
 
     public ImmutableTriplet<L, M, R> clone() {
         return new ImmutableTriplet<>(this.left, this.middle, this.right);
+    }
+
+    public static <L, M, R> ImmutableTriplet<L, M, R> of(L left, M middle, R right) {
+        return new ImmutableTriplet<>(left, middle, right);
     }
 
     @Override

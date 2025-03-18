@@ -3,7 +3,8 @@ package com.github.groundbreakingmc.mylib.collections.cases;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor @Getter
+@RequiredArgsConstructor
+@Getter
 public class ImmutablePair<L, R> {
 
     private final L left;
@@ -19,6 +20,10 @@ public class ImmutablePair<L, R> {
 
     public ImmutablePair<L, R> clone() {
         return new ImmutablePair<>(this.left, this.right);
+    }
+
+    public static <L, R> ImmutablePair<L, R> of(L left, R right) {
+        return new ImmutablePair<>(left, right);
     }
 
     @Override
