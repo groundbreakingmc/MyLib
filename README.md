@@ -1,29 +1,21 @@
 ## How to Install the Library
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/groundbreakingmc/MyLib.git
-   ```
+### Repository
+```xml
+<repository>
+    <id>jitpack.io</id>
+    <url>https://jitpack.io</url>
+</repository>
+```
 
-2. Navigate to the project directory:
-   ```
-   cd your-repo
-   ```
-
-3. Run the installation script:
-   - **On Windows**:
-     ```
-     install-mylib.bat 1.1
-     ```
-   - **On Linux/macOS**:
-     ```
-     ./install-mylib.sh 1.1
-     ```
-
-After this, the library will be available in your local Maven repository. You can add it to your project using:
+### Dependency
 ```xml
 <dependency>
     <groupId>com.github.groundbreakingmc</groupId>
     <artifactId>MyLib</artifactId>
-    <version>1.0</version>
-</dependency>```
+    <!-- You can also replace main with the commit hash if wnt to use specified -->
+    <version>main-SNAPSHOT</version>
+    <!-- Set compile if you want to shadein the Lib -->
+    <scope>provided</scope>
+</dependency>
+```
