@@ -68,7 +68,7 @@ public class UpdatesChecker {
         } catch (final Exception ex) {
             this.logger.warn("Failed to check for update: " + ex.getMessage());
             this.logger.warn(this.errorMessage);
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
     }
 
@@ -147,14 +147,14 @@ public class UpdatesChecker {
                 this.logger.warn(this.errorMessage);
             }
         } catch (final IOException ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
     }
 
     private void logUpdate(final String[] body, final String newVersion, final boolean isAutoUpdateEnabled) {
         this.logger.info("[UPDATE] ╓");
         this.logger.info("[UPDATE] ╠ New version found - v" + newVersion);
-        this.logger.info("[UPDATE] ╠ You are " + this.difference + " versions nehind");
+        this.logger.info("[UPDATE] ╠ You are " + this.difference + " versions behind");
         this.logger.info("[UPDATE] ╚╗");
 
         for (final String info : body) {
