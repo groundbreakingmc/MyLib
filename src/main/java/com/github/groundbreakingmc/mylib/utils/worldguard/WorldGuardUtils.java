@@ -252,7 +252,8 @@ public final class WorldGuardUtils {
         return regionManager.getRegion(regionName);
     }
 
-    @ApiStatus.Experimental @NotNull
+    @ApiStatus.Experimental
+    @NotNull
     public static Set<ProtectedRegion> getAllProtectedRegions(final UUID whoseUUID, final com.sk89q.worldedit.world.World world) {
         Objects.requireNonNull(whoseUUID, "Player UUID can not be null!");
         Objects.requireNonNull(world, "World UUID can not be null!");
@@ -274,6 +275,14 @@ public final class WorldGuardUtils {
         }
 
         return regions;
+    }
+
+    public static RegionManager getRegionManager(final World world) {
+        return REGION_CONTAINER.get(BukkitAdapter.adapt(world));
+    }
+
+    public static RegionManager getRegionManager(final com.sk89q.worldedit.world.World world) {
+        return REGION_CONTAINER.get(world);
     }
 
     public static int getRegionCount(final Player whose, final World world) {
