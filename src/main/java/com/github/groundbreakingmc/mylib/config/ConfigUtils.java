@@ -114,7 +114,7 @@ public class ConfigUtils {
             return defaultValue;
         }
 
-        return EffectSettings.get(string);
+        return EffectSettings.fromString(string);
     }
 
     @Nullable
@@ -129,7 +129,7 @@ public class ConfigUtils {
             return defaultValue;
         }
 
-        return SoundSettings.get(string);
+        return SoundSettings.fromString(string);
     }
 
     @Nullable
@@ -144,6 +144,6 @@ public class ConfigUtils {
             return defaultValue;
         }
 
-        return TitleSettings.get(string);
+        return TitleSettings.fromString(string);
     }
 }

@@ -147,13 +147,13 @@ public abstract class ConfigProcessor {
             return ColorizerFactory.createColorizer(valueNode.getString());
         }
         if (EffectSettings.class.isAssignableFrom(fieldType)) {
-            return EffectSettings.get(valueNode.getString());
+            return EffectSettings.fromString(valueNode.getString());
         }
         if (SoundSettings.class.isAssignableFrom(fieldType)) {
-            return SoundSettings.get(valueNode.getString());
+            return SoundSettings.fromString(valueNode.getString());
         }
         if (TitleSettings.class.isAssignableFrom(fieldType)) {
-            return TitleSettings.get(valueNode.getString());
+            return TitleSettings.fromString(valueNode.getString());
         }
         if (Pattern.class.isAssignableFrom(fieldType)) {
             return Pattern.compile(valueNode.getString());
@@ -182,11 +182,11 @@ public abstract class ConfigProcessor {
                 } else if (Material.class.isAssignableFrom(argumentType)) {
                     collection = this.getMaterialCollection(node, values);
                 } else if (EffectSettings.class.isAssignableFrom(argumentType)) {
-                    collection = this.getSettingsCollection(node, values, EffectSettings::get);
+                    collection = this.getSettingsCollection(node, values, EffectSettings::fromString);
                 } else if (SoundSettings.class.isAssignableFrom(argumentType)) {
-                    collection = this.getSettingsCollection(node, values, SoundSettings::get);
+                    collection = this.getSettingsCollection(node, values, SoundSettings::fromString);
                 } else if (TitleSettings.class.isAssignableFrom(argumentType)) {
-                    collection = this.getSettingsCollection(node, values, TitleSettings::get);
+                    collection = this.getSettingsCollection(node, values, TitleSettings::fromString);
                 } else {
                     collection = node.node(values.path()).getList(argumentType);
                 }

@@ -13,7 +13,7 @@ public class SoundSettings {
     public final float pitch = 1.0f;
 
     @Nullable
-    public static SoundSettings get(final String string) {
+    public static SoundSettings fromString(final String string) {
         if (string == null) {
             return null;
         }

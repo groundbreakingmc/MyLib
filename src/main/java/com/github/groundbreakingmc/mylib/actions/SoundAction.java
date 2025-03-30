@@ -14,7 +14,7 @@ public class SoundAction extends Action.ActionExecutor {
     public SoundAction(Plugin plugin, Colorizer colorizer, String action) {
         super(plugin, colorizer, action);
 
-        this.settings = SoundSettings.get(action);
+        this.settings = SoundSettings.fromString(action);
     }
 
     @Override

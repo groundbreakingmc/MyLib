@@ -13,7 +13,7 @@ public class EffectAction extends Action.ActionExecutor {
 
     public EffectAction(Plugin plugin, Colorizer colorizer, String action) {
         super(plugin, colorizer, action);
-        this.effect = EffectSettings.get(action);
+        this.effect = EffectSettings.fromString(action);
     }
 
     @Override

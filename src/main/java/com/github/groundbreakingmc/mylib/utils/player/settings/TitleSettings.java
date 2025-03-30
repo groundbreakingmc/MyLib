@@ -17,7 +17,7 @@ public class TitleSettings {
     public final int fadeOut = 10;
 
     @Nullable
-    public static TitleSettings get(final String string) {
+    public static TitleSettings fromString(final String string) {
         if (string == null) {
             return null;
         }

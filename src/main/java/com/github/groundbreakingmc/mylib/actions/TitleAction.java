@@ -14,7 +14,7 @@ public class TitleAction extends Action.ActionExecutor {
     public TitleAction(Plugin plugin, Colorizer colorizer, String action) {
         super(plugin, colorizer, action);
 
-        this.settings = TitleSettings.get(super.action);
+        this.settings = TitleSettings.fromString(super.action);
     }
 
     @Override

@@ -29,7 +29,7 @@ public class EffectSettings {
     }
 
     @Nullable
-    public static EffectSettings get(final String string) {
+    public static EffectSettings fromString(final String string) {
         if (string == null) {
             return null;
         }
