@@ -60,8 +60,9 @@ public class SelfExpiringMap<K, V> {
     }
 
     public V computeIfAbsent(final K key,
-                             final Function<? super K, ? extends ExpiringValue<V>> mappingFunction) {
-        final ExpiringValue<V> value = this.cache.get(key, mappingFunction);
+                             final Function<? super K, ? extends V> mappingFunction,
+                             final long expiryDuration) {
+        final ExpiringValue<V> value = this.cache.get(key, (__) -> new ExpiringValue<>(mappingFunction.apply(key), expiryDuration));
         return value != null ? value.value : null;
     }
 
