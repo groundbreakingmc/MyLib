@@ -9,6 +9,7 @@ import org.checkerframework.checker.index.qual.NonNegative;
 
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 @SuppressWarnings("unused")
 public class SelfExpiringMap<K, V> {
@@ -50,13 +51,18 @@ public class SelfExpiringMap<K, V> {
     }
 
     public V get(final K key) {
-        final ExpiringValue<V> value = this.cache.getIfPresent(key);
-        return value != null ? value.value : null;
+        return this.getOrDefault(key, null);
     }
 
     public V getOrDefault(final K key, final V defaultValue) {
         final ExpiringValue<V> value = this.cache.getIfPresent(key);
         return value != null ? value.value : defaultValue;
+    }
+
+    public V computeIfAbsent(final K key,
+                             final Function<? super K, ? extends ExpiringValue<V>> mappingFunction) {
+        final ExpiringValue<V> value = this.cache.get(key, mappingFunction);
+        return value != null ? value.value : null;
     }
 
     public boolean containsKey(final K key) {

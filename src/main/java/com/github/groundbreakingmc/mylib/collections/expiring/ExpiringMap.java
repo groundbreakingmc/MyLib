@@ -40,6 +40,11 @@ public final class ExpiringMap<K, V> {
         return (value = this.cache.getIfPresent(key)) == null ? defaultValue.apply(key) : value;
     }
 
+    public V computeIfAbsent(final K key,
+                             final Function<? super K, ? extends V> mappingFunction) {
+        return this.cache.get(key, mappingFunction);
+    }
+
     public boolean containsKey(final K key) {
         return this.cache.getIfPresent(key) != null;
     }
