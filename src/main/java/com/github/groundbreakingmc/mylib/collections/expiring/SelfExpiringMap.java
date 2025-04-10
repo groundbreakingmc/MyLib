@@ -3,8 +3,6 @@ package com.github.groundbreakingmc.mylib.collections.expiring;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.checkerframework.checker.index.qual.NonNegative;
 
 import java.util.concurrent.ForkJoinPool;
@@ -82,11 +80,6 @@ public class SelfExpiringMap<K, V> {
         this.cache.invalidateAll();
     }
 
-    @RequiredArgsConstructor
-    @Getter
-    private static final class ExpiringValue<V> {
-
-        private final V value;
-        private final long duration;
+    private record ExpiringValue<V>(V value, long duration) {
     }
 }
