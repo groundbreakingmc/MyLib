@@ -16,7 +16,7 @@ import java.util.List;
 @UtilityClass
 public final class CommandRuntimeUtils {
 
-    private static final SimpleCommandMap COMMAND_MAP = getCommandMap();
+    public static final SimpleCommandMap COMMAND_MAP = getCommandMap();
 
     public static void register(final Plugin plugin, final String command, final CommandExecutor commandExecutor) {
         register(plugin, command, new ArrayList<>(), commandExecutor, null);
@@ -106,7 +106,7 @@ public final class CommandRuntimeUtils {
         }
     }
 
-    private static SimpleCommandMap getCommandMap() {
+    public static SimpleCommandMap getCommandMap() {
         try {
             final Field commandMapField = SimplePluginManager.class.getDeclaredField("commandMap");
             commandMapField.setAccessible(true);
