@@ -5,10 +5,11 @@ import lombok.experimental.UtilityClass;
 import org.bukkit.plugin.Plugin;
 
 @UtilityClass
+@SuppressWarnings("unused")
 public final class LoggerFactory {
 
     public static Logger createLogger(final Plugin plugin) {
-        final int minorVersion = ServerInfo.getSubVersion(plugin);
+        final int minorVersion = ServerInfo.getSubVersion();
         return createLogger(plugin, minorVersion);
     }
 
