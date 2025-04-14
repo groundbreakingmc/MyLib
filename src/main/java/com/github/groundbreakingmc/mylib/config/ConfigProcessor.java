@@ -10,7 +10,10 @@ import com.github.groundbreakingmc.mylib.utils.player.settings.EffectSettings;
 import com.github.groundbreakingmc.mylib.utils.player.settings.SoundSettings;
 import com.github.groundbreakingmc.mylib.utils.player.settings.TitleSettings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -20,9 +23,7 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.serialize.SerializationException;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -49,7 +50,7 @@ public abstract class ConfigProcessor {
         this.sections = new HashMap<>();
     }
 
-    public final void setupValues() throws IllegalAccessException {
+    public final ConfigurationNode setupValues() throws IllegalAccessException {
         final Class<?> clazz = this.getClass();
         if (!clazz.isAnnotationPresent(Config.class)) {
             throw new UnsupportedOperationException("Class is not annotated with required annotation!");
@@ -63,6 +64,7 @@ public abstract class ConfigProcessor {
         }
 
         this.setupFields(this, config);
+        return config;
     }
 
     public final void setupValues(final ConfigurationNode config) throws IllegalAccessException {
@@ -115,67 +117,39 @@ public abstract class ConfigProcessor {
     }
 
     @Nullable
-    private Object getValue(final Field field, final ConfigurationNode node, final Value values) throws SerializationException {
+    private Object getValue(final Field field, final ConfigurationNode node, final Value values) throws SerializationException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         final ConfigurationNode valueNode = node.node(values.path().split("\\."));
         if (valueNode.virtual()) {
             return null;
         }
 
         final Class<?> fieldType = field.getType();
-        if (String.class.isAssignableFrom(fieldType)) {
-            final String value = valueNode.getString();
-            return values.colorize() ? this.colorizer.colorize(value) : value;
+        final Object object = this.get(fieldType, node, values);
+        if (object != null) {
+            return object;
         }
-        if (int.class.isAssignableFrom(fieldType)) {
-            return valueNode.getInt();
-        }
-        if (double.class.isAssignableFrom(fieldType)) {
-            return valueNode.getDouble();
-        }
-        if (float.class.isAssignableFrom(fieldType)) {
-            return valueNode.getFloat();
-        }
+
         final boolean isList = List.class.isAssignableFrom(fieldType);
         if (isList || Set.class.isAssignableFrom(fieldType)) {
             return this.getCollection(field, node, values, isList);
         }
-        if (World.class.isAssignableFrom(fieldType)) {
-            final String worldName = valueNode.getString();
-            return worldName != null ? Bukkit.getWorld(worldName) : null;
-        }
-        if (Colorizer.class.isAssignableFrom(fieldType)) {
-            return ColorizerFactory.createColorizer(valueNode.getString());
-        }
-        if (EffectSettings.class.isAssignableFrom(fieldType)) {
-            return EffectSettings.fromString(valueNode.getString());
-        }
-        if (SoundSettings.class.isAssignableFrom(fieldType)) {
-            return SoundSettings.fromString(valueNode.getString());
-        }
-        if (TitleSettings.class.isAssignableFrom(fieldType)) {
-            return TitleSettings.fromString(valueNode.getString());
-        }
-        if (Pattern.class.isAssignableFrom(fieldType)) {
-            return Pattern.compile(valueNode.getString());
-        }
         if (Map.class.isAssignableFrom(fieldType)) {
-            this.logger.warn("Maps are not supported yet!");
-            return null;
+            return this.getMap(field, node, values);
         }
 
         return null;
     }
 
     private Collection<?> getCollection(final Field field, final ConfigurationNode node, final Value values,
-                                        final boolean isList) throws SerializationException {
+                                        final boolean isList) throws SerializationException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         final Type genericType = field.getGenericType();
-        if (genericType instanceof ParameterizedType) {
-            final ParameterizedType parameterizedType = (ParameterizedType) genericType;
+        if (genericType instanceof final ParameterizedType parameterizedType) {
             final Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
-            if (actualTypeArguments.length > 0 && actualTypeArguments[0] instanceof Class<?>) {
-                final Class<?> argumentType = (Class<?>) actualTypeArguments[0];
+            if (actualTypeArguments.length > 0 && actualTypeArguments[0] instanceof final Class<?> argumentType) {
                 final Collection<?> collection;
-                if (String.class.isAssignableFrom(argumentType)) {
+                if (ConfigSerializable.class.isAssignableFrom(argumentType)) {
+                    collection = this.getCustomCollection(argumentType, node, values);
+                } else if (String.class.isAssignableFrom(argumentType)) {
                     collection = this.getStringCollection(node, values);
                 } else if (World.class.isAssignableFrom(argumentType)) {
                     collection = this.getWorldCollection(node, values);
@@ -188,7 +162,7 @@ public abstract class ConfigProcessor {
                 } else if (TitleSettings.class.isAssignableFrom(argumentType)) {
                     collection = this.getSettingsCollection(node, values, TitleSettings::fromString);
                 } else {
-                    collection = node.node(values.path()).getList(argumentType);
+                    collection = node.getList(argumentType);
                 }
 
                 if (isList) {
@@ -202,9 +176,79 @@ public abstract class ConfigProcessor {
         throw new IllegalArgumentException("Field is not a parameterized type!");
     }
 
+    private Map<?, ?> getMap(final Field field, final ConfigurationNode node, final Value values) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+        final Type genericType = field.getGenericType();
+        if (genericType instanceof final ParameterizedType parameterizedType) {
+            final Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
+            if (actualTypeArguments.length > 1
+                    && actualTypeArguments[0] instanceof final Class<?> keyType
+                    && actualTypeArguments[1] instanceof final Class<?> valueType) {
+                final Map<Object, Object> result = new Object2ObjectOpenHashMap<>();
+                for (Map.Entry<Object, ? extends ConfigurationNode> entry : node.childrenMap().entrySet()) {
+                    final Object value = this.get(valueType, entry.getValue(), values);
+                    if (value != null) {
+                        result.put(entry.getKey(), value);
+                    }
+                }
+
+                return values.immutable() ? ImmutableMap.copyOf(result) : result;
+            }
+        }
+
+        throw new IllegalArgumentException("Field is not a parameterized type!");
+    }
+
+    @Nullable
+    private Object get(final Class<?> clazz, final ConfigurationNode node, final Value values) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        if (ConfigProcessor.class.isAssignableFrom(clazz)) {
+            final Method serializeMethod = clazz.getDeclaredMethod("serializeValue", ConfigurationNode.class);
+            return clazz.cast(serializeMethod.invoke(null, node));
+        }
+        if (String.class.isAssignableFrom(clazz)) {
+            final String value = node.getString();
+            return values.colorize() ? this.colorizer.colorize(value) : value;
+        }
+        if (int.class.isAssignableFrom(clazz)) {
+            return node.getInt();
+        }
+        if (double.class.isAssignableFrom(clazz)) {
+            return node.getDouble();
+        }
+        if (float.class.isAssignableFrom(clazz)) {
+            return node.getFloat();
+        }
+        if (World.class.isAssignableFrom(clazz)) {
+            final String worldName = node.getString();
+            return worldName != null ? Bukkit.getWorld(worldName) : null;
+        }
+        if (Colorizer.class.isAssignableFrom(clazz)) {
+            return ColorizerFactory.createColorizer(node.getString());
+        }
+        if (EffectSettings.class.isAssignableFrom(clazz)) {
+            return EffectSettings.fromString(node.getString());
+        }
+        if (SoundSettings.class.isAssignableFrom(clazz)) {
+            return SoundSettings.fromString(node.getString());
+        }
+        if (TitleSettings.class.isAssignableFrom(clazz)) {
+            return TitleSettings.fromString(node.getString());
+        }
+        if (Pattern.class.isAssignableFrom(clazz)) {
+            return Pattern.compile(node.getString());
+        }
+
+        return null;
+    }
+
+    private Collection<?> getCustomCollection(final Class<?> clazz, final ConfigurationNode node, final Value values) throws
+            NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        final Method serializeMethod = clazz.getDeclaredMethod("serializeValue", ConfigurationNode.class);
+        return (List<?>) serializeMethod.invoke(null, node);
+    }
+
     private Collection<String> getStringCollection(final ConfigurationNode node, final Value values) throws
             SerializationException {
-        final List<String> list = node.node(values.path()).getList(String.class);
+        final List<String> list = node.getList(String.class);
         if (values.colorize()) {
             list.replaceAll(this.colorizer::colorize);
         }
@@ -214,8 +258,8 @@ public abstract class ConfigProcessor {
 
     private Collection<World> getWorldCollection(final ConfigurationNode node, final Value values) throws
             SerializationException {
-        final List<World> worlds = new ArrayList<>();
-        for (final String string : node.node(values.path()).getList(String.class)) {
+        final List<World> worlds = new ObjectArrayList<>();
+        for (final String string : node.getList(String.class)) {
             final World world = Bukkit.getWorld(string);
             if (world != null) {
                 worlds.add(world);
@@ -229,8 +273,8 @@ public abstract class ConfigProcessor {
 
     private Collection<Material> getMaterialCollection(final ConfigurationNode node, final Value values) throws
             SerializationException {
-        final List<Material> materials = new ArrayList<>();
-        for (final String string : node.node(values.path()).getList(String.class)) {
+        final List<Material> materials = new ObjectArrayList<>();
+        for (final String string : node.getList(String.class)) {
             final Material material = Material.getMaterial(string.toUpperCase());
             if (material != null) {
                 materials.add(material);
@@ -244,8 +288,8 @@ public abstract class ConfigProcessor {
 
     private <T> Collection<T> getSettingsCollection(final ConfigurationNode node, final Value values,
                                                     final Function<String, T> mapper) throws SerializationException {
-        final List<T> settings = new ArrayList<>();
-        for (final String string : node.node(values.path()).getList(String.class)) {
+        final List<T> settings = new ObjectArrayList<>();
+        for (final String string : node.getList(String.class)) {
             settings.add(mapper.apply(string));
         }
 
