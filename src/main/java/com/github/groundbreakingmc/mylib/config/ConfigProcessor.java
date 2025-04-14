@@ -202,6 +202,7 @@ public abstract class ConfigProcessor {
     private Object get(final Class<?> clazz, final ConfigurationNode node, final Value values) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         if (ConfigProcessor.class.isAssignableFrom(clazz)) {
             final Method serializeMethod = clazz.getDeclaredMethod("serializeValue", ConfigurationNode.class);
+            serializeMethod.setAccessible(true);
             return clazz.cast(serializeMethod.invoke(null, node));
         }
         if (String.class.isAssignableFrom(clazz)) {
@@ -243,6 +244,7 @@ public abstract class ConfigProcessor {
     private Collection<?> getCustomCollection(final Class<?> clazz, final ConfigurationNode node, final Value values) throws
             NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         final Method serializeMethod = clazz.getDeclaredMethod("serializeValue", ConfigurationNode.class);
+        serializeMethod.setAccessible(true);
         return (List<?>) serializeMethod.invoke(null, node);
     }
 
