@@ -201,9 +201,9 @@ public abstract class ConfigProcessor {
     @Nullable
     private Object get(final Class<?> clazz, final ConfigurationNode node, final Value values) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         if (ConfigProcessor.class.isAssignableFrom(clazz)) {
-            final Method serializeMethod = clazz.getDeclaredMethod("serializeValue", ConfigurationNode.class);
+            final Method serializeMethod = clazz.getDeclaredMethod("serializeValue", Object.class);
             serializeMethod.setAccessible(true);
-            return clazz.cast(serializeMethod.invoke(null, node));
+            return clazz.cast(serializeMethod.invoke(null, node.rawScalar()));
         }
         if (String.class.isAssignableFrom(clazz)) {
             final String value = node.getString();
@@ -242,10 +242,18 @@ public abstract class ConfigProcessor {
     }
 
     private Collection<?> getCustomCollection(final Class<?> clazz, final ConfigurationNode node, final Value values) throws
-            NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        final Method serializeMethod = clazz.getDeclaredMethod("serializeValue", ConfigurationNode.class);
+            NoSuchMethodException, InvocationTargetException, IllegalAccessException, SerializationException {
+        final Method serializeMethod = clazz.getDeclaredMethod("serializeValue", Object.class);
         serializeMethod.setAccessible(true);
-        return (List<?>) serializeMethod.invoke(null, node);
+
+        final List<Object> list = node.getList(Object.class);
+        final List<Object> serialized = new ObjectArrayList<>(list.size());
+
+        for (int i = 0; i < list.size(); i++) {
+            serialized.add(serializeMethod.invoke(null, list.get(i)));
+        }
+
+        return serialized;
     }
 
     private Collection<String> getStringCollection(final ConfigurationNode node, final Value values) throws
