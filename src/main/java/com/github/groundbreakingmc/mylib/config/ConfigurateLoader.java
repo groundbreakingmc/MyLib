@@ -1,6 +1,7 @@
 package com.github.groundbreakingmc.mylib.config;
 
 import com.github.groundbreakingmc.mylib.logger.console.Logger;
+import com.github.groundbreakingmc.mylib.logger.console.LoggerFactory;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.plugin.Plugin;
@@ -40,8 +41,7 @@ public class ConfigurateLoader {
                     ? this.checkVersion(config, fileName, fileVersion, versionPath)
                     : config;
         } catch (final ConfigurateException ex) {
-            ex.printStackTrace();
-            return null;
+            throw new RuntimeException(ex);
         }
     }
 
@@ -60,7 +60,7 @@ public class ConfigurateLoader {
     private void createBackupAndUpdate(final String fileName) {
         final File folder = this.plugin.getDataFolder();
         if (!folder.exists() && !folder.mkdirs()) {
-            this.logger.warn("An error occurred while creating the backups folder!");
+            this.logger.warning("An error occurred while creating the backups folder!");
             return;
         }
 
@@ -71,9 +71,14 @@ public class ConfigurateLoader {
         if (file.renameTo(backupFile)) {
             this.plugin.saveResource(fileName, true);
         } else {
-            this.logger.warn("Your configuration file \"" + fileName + "\" is outdated, but creating a new one isn't possible.");
+            this.logger.warning("Your configuration file \"" + fileName + "\" is outdated, but creating a new one isn't possible.");
         }
     }
+
+    public static Loader loader(final Plugin plugin) {
+        return loader(plugin, LoggerFactory.createLogger(plugin));
+    }
+
     public static Loader loader(final Plugin plugin, final Logger logger) {
         return new Loader(plugin, logger);
     }
