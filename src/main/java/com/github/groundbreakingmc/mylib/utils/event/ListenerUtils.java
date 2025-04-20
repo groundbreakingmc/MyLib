@@ -55,7 +55,7 @@ public class ListenerUtils {
     @ApiStatus.Experimental
     public static boolean unregister(@NotNull Listener listener,
                                      @NotNull Class<? extends Event> eventClass,
-                                     @NotNull RegisteredListener registeredListener,
+                                     @NotNull org.bukkit.plugin.RegisteredListener registeredListener,
                                      @NotNull String methodName) {
         final Set<ListenerData> listenerDataSet = ListenerUtils.REGISTERED.get(listener);
         if (listenerDataSet == null || listenerDataSet.isEmpty()) {
