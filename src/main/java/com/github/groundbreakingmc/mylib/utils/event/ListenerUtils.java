@@ -14,17 +14,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
-@UtilityClass @SuppressWarnings("unused")
+@UtilityClass
+@SuppressWarnings("unused")
 public class ListenerUtils {
 
     static final Map<Listener, Set<ListenerData>> REGISTERED = new HashMap<>();
 
-    @Nullable @ApiStatus.Experimental
+    @Nullable
+    @ApiStatus.Experimental
     public RegisteredListener register(@NotNull Plugin plugin,
                                        @NotNull Listener listener,
                                        @NotNull Method executeMethod,
@@ -55,16 +54,28 @@ public class ListenerUtils {
 
     @ApiStatus.Experimental
     public static boolean unregister(@NotNull Listener listener,
-                                     @NotNull Class<? extends Event> eventClass,
-                                     @NotNull RegisteredListener registeredListener,
-                                     @NotNull String methodName) {
+                                     @NotNull Method executeMethod,
+                                     @NotNull RegisteredListener registeredListener) {
+        final Class<?> checkClass;
+        if (executeMethod.getParameterCount() != 1
+                || !Event.class.isAssignableFrom(checkClass = executeMethod.getParameterTypes()[0])) {
+            throw new RuntimeException("Attempted to register an invalid EventHandler method signature \"" + executeMethod.toGenericString() + "\" in " + listener.getClass());
+        }
+
         final Set<ListenerData> listenerDataSet = ListenerUtils.REGISTERED.get(listener);
         if (listenerDataSet == null || listenerDataSet.isEmpty()) {
             return false;
         }
 
+        final Class<? extends Event> eventClass = checkClass.asSubclass(Event.class);
         getEventListeners(eventClass).unregister(registeredListener);
-        listenerDataSet.removeIf(next -> next.equals(eventClass, methodName));
+        final Iterator<ListenerData> iterator = listenerDataSet.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next().equals(eventClass, executeMethod.getName())) {
+                iterator.remove();
+                break;
+            }
+        }
         return true;
     }
 
