@@ -54,24 +54,18 @@ public class ListenerUtils {
 
     @ApiStatus.Experimental
     public static boolean unregister(@NotNull Listener listener,
-                                     @NotNull Method executeMethod,
-                                     @NotNull RegisteredListener registeredListener) {
-        final Class<?> checkClass;
-        if (executeMethod.getParameterCount() != 1
-                || !Event.class.isAssignableFrom(checkClass = executeMethod.getParameterTypes()[0])) {
-            throw new RuntimeException("Attempted to register an invalid EventHandler method signature \"" + executeMethod.toGenericString() + "\" in " + listener.getClass());
-        }
-
+                                     @NotNull Class<? extends Event> eventClass,
+                                     @NotNull org.bukkit.plugin.RegisteredListener registeredListener,
+                                     @NotNull String methodName) {
         final Set<ListenerData> listenerDataSet = ListenerUtils.REGISTERED.get(listener);
         if (listenerDataSet == null || listenerDataSet.isEmpty()) {
             return false;
         }
 
-        final Class<? extends Event> eventClass = checkClass.asSubclass(Event.class);
         getEventListeners(eventClass).unregister(registeredListener);
         final Iterator<ListenerData> iterator = listenerDataSet.iterator();
         while (iterator.hasNext()) {
-            if (iterator.next().equals(eventClass, executeMethod.getName())) {
+            if (iterator.next().equals(eventClass, methodName)) {
                 iterator.remove();
                 break;
             }
