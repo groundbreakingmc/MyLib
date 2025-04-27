@@ -1,7 +1,5 @@
 package com.github.groundbreakingmc.mylib.logger.file;
 
-import org.jetbrains.annotations.ApiStatus;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -9,23 +7,22 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import java.util.zip.GZIPOutputStream;
 
 @SuppressWarnings("unused")
-@ApiStatus.Experimental
-public class FileLogger implements Closeable {
+public class FileLogger {
 
-    private static final Executor generalExecutor = Executors.newSingleThreadExecutor(threadFactory -> {
+    private static final ExecutorService GENERAL_EXECUTOR = Executors.newSingleThreadExecutor(threadFactory -> {
         final Thread thread = new Thread(threadFactory, "MyLib-File-Logger");
         thread.setDaemon(true);
         return thread;
     });
 
     private final BufferedWriter writer;
-    private Executor executor = generalExecutor;
+    private ExecutorService executor = GENERAL_EXECUTOR;
 
     public FileLogger(final String logFolder) throws IOException {
         this(logFolder, "latest.log");
@@ -43,7 +40,7 @@ public class FileLogger implements Closeable {
                     Files.createFile(logFile.toPath());
                 }
             } catch (final Exception ex) {
-                ex.printStackTrace();
+                throw new RuntimeException(ex);
             }
         }
 
@@ -57,13 +54,13 @@ public class FileLogger implements Closeable {
                 writer.newLine();
                 writer.flush();
             } catch (final Exception ex) {
-                ex.printStackTrace();
+                throw new RuntimeException(ex);
             }
         });
     }
 
     private static void archiveLogFile(final File logFile, final String logFolder) {
-        generalExecutor.execute(() -> {
+        GENERAL_EXECUTOR.execute(() -> {
             try {
                 final File archive = getArchiveFile(logFolder);
 
@@ -80,7 +77,7 @@ public class FileLogger implements Closeable {
                 Files.delete(logFile.toPath());
                 Files.createFile(logFile.toPath());
             } catch (final Exception ex) {
-                ex.printStackTrace();
+                throw new RuntimeException(ex);
             }
         });
     }
@@ -127,15 +124,18 @@ public class FileLogger implements Closeable {
         });
     }
 
-    public void setDefaultExecutor() {
-        this.executor = generalExecutor;
+    public void useDefaultExecutor() {
+        this.executor = GENERAL_EXECUTOR;
     }
 
-    public void setExecutor(final Executor executor) {
+    public void setExecutor(final ExecutorService executor) {
         this.executor = executor;
     }
 
-    public void close() throws IOException {
+    public void stop() throws IOException {
         this.writer.close();
+        if (this.executor != GENERAL_EXECUTOR) {
+            this.executor.shutdown();
+        }
     }
 }
