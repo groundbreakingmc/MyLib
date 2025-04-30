@@ -21,7 +21,8 @@ public final class PlayerUtils {
         }
 
         final List<MetadataValue> metadata = player.getMetadata("vanished");
-        return !metadata.isEmpty() && metadata.get(0).asBoolean();
+        final Object value; // The value has not to be null, but who knows what kind of shit can happen
+        return !metadata.isEmpty() && (value = metadata.get(0).value()) != null && (Boolean) value;
     }
 
     public static void broadcast(final Collection<? extends Player> players, final String message) {
