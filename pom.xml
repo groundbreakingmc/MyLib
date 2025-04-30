@@ -190,5 +190,12 @@
             <version>5.1.0</version>
             <scope>provided</scope>
         </dependency>
+        <!-- https://www.spigotmc.org/resources/supervanish-be-invisible.1331/ -->
+        <dependency>
+            <groupId>com.github.LeonMangler</groupId>
+            <artifactId>SuperVanish</artifactId>
+            <version>6.2.19</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

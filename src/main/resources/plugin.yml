@@ -11,6 +11,9 @@ softdepend:
   - WorldGuard
   - LuckPerms
   - Vault
+  - UltimateVanish
+  - SuperVanish
+  - PremiumVanish
 
 author: GroundbreakingMC
 website: ${scm.url}
