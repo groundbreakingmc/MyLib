@@ -115,7 +115,8 @@ public class ConfigUtils {
     @Nullable
     public static EffectSettings getEffectSettings(ConfigurationNode node, String path, EffectSettings defaultValue) {
         final String string = node.node(path).getString();
-        return EffectSettings.fromString(string);
+        EffectSettings value = EffectSettings.fromString(string);
+        return value != null ? value : defaultValue;
     }
 
     @Nullable
@@ -126,7 +127,8 @@ public class ConfigUtils {
     @Nullable
     public static SoundSettings getSoundSettings(ConfigurationNode node, String path, SoundSettings defaultValue) {
         final String string = node.node(path).getString();
-        return SoundSettings.fromString(string);
+        SoundSettings value = SoundSettings.fromString(string);
+        return value != null ? value : defaultValue;
     }
 
     @Nullable
@@ -135,8 +137,17 @@ public class ConfigUtils {
     }
 
     @Nullable
-    public static TitleSettings getTitleSettings(ConfigurationNode node, String path, TitleSettings defaultValue) {
+    public static TitleSettings getTitleSettings(ConfigurationNode node, String path, StringColorizer colorizer) {
+        return getTitleSettings(node, path, colorizer, null);
+    }
+
+    @Nullable
+    public static TitleSettings getTitleSettings(ConfigurationNode node, String path, StringColorizer colorizer, TitleSettings defaultValue) {
         final String string = node.node(path).getString();
-        return TitleSettings.fromString(string);
+        if (string == null) {
+            return defaultValue;
+        }
+
+        return TitleSettings.fromString(colorizer != null ? colorizer.colorize(string) : string);
     }
 }
