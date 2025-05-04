@@ -1,7 +1,8 @@
 package com.github.groundbreakingmc.mylib.config;
 
-import com.github.groundbreakingmc.mylib.colorizer.Colorizer;
 import com.github.groundbreakingmc.mylib.colorizer.ColorizerFactory;
+import com.github.groundbreakingmc.mylib.colorizer.component.ComponentColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.legacy.StringColorizer;
 import com.github.groundbreakingmc.mylib.config.annotations.Config;
 import com.github.groundbreakingmc.mylib.config.annotations.Section;
 import com.github.groundbreakingmc.mylib.config.annotations.Value;
@@ -15,10 +16,12 @@ import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.Getter;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.serialize.SerializationException;
@@ -35,19 +38,32 @@ public abstract class ConfigProcessor {
     protected final Logger logger;
     protected final boolean debug;
     @Getter
-    private Colorizer colorizer;
+    private StringColorizer stringColorizer;
+    @Getter
+    private ComponentColorizer componentColorizer;
     protected final Map<String, Field> sections;
 
-    protected ConfigProcessor(final Plugin plugin, final Logger logger, final boolean debug) {
-        this(plugin, logger, debug, null);
-    }
-
-    protected ConfigProcessor(final Plugin plugin, final Logger logger, final boolean debug, final Colorizer colorizer) {
+    protected ConfigProcessor(@NotNull Plugin plugin, @NotNull Logger logger, final boolean debug) {
         this.plugin = plugin;
         this.logger = logger;
         this.debug = debug;
-        this.colorizer = colorizer;
-        this.sections = new HashMap<>();
+        this.sections = new Object2ObjectOpenHashMap<>();
+    }
+
+    protected ConfigProcessor(@NotNull Plugin plugin, @NotNull Logger logger, final boolean debug, @Nullable StringColorizer stringColorizer) {
+        this.plugin = plugin;
+        this.logger = logger;
+        this.debug = debug;
+        this.stringColorizer = stringColorizer;
+        this.sections = new Object2ObjectOpenHashMap<>();
+    }
+
+    protected ConfigProcessor(@NotNull Plugin plugin, @NotNull Logger logger, final boolean debug, @Nullable ComponentColorizer componentColorizer) {
+        this.plugin = plugin;
+        this.logger = logger;
+        this.debug = debug;
+        this.componentColorizer = componentColorizer;
+        this.sections = new Object2ObjectOpenHashMap<>();
     }
 
     public final ConfigurationNode setupValues() throws IllegalAccessException {
@@ -60,7 +76,9 @@ public abstract class ConfigProcessor {
         final ConfigurationNode config = this.getConfig(configAnnotation.fileName(), configAnnotation.version(), configAnnotation.versionPath());
 
         if (!configAnnotation.colorizerPath().isEmpty()) {
-            this.colorizer = ColorizerFactory.createColorizer(config.node(configAnnotation.colorizerPath().split("\\.")).getString());
+            final String mode = config.node(configAnnotation.colorizerPath().split("\\.")).getString();
+            this.componentColorizer = ColorizerFactory.createComponentColorizer(mode);
+            this.stringColorizer = ColorizerFactory.createStringColorizer(mode);
         }
 
         this.setupFields(this, config);
@@ -207,7 +225,11 @@ public abstract class ConfigProcessor {
         }
         if (String.class.isAssignableFrom(clazz)) {
             final String value = node.getString();
-            return values.colorize() ? this.colorizer.colorize(value) : value;
+            return values.colorize() ? this.stringColorizer.colorize(value) : value;
+        }
+        if (Component.class.isAssignableFrom(clazz)) {
+            final String value = node.getString();
+            return values.colorize() ? this.componentColorizer.colorize(value) : value;
         }
         if (int.class.isAssignableFrom(clazz)) {
             return node.getInt();
@@ -222,8 +244,11 @@ public abstract class ConfigProcessor {
             final String worldName = node.getString();
             return worldName != null ? Bukkit.getWorld(worldName) : null;
         }
-        if (Colorizer.class.isAssignableFrom(clazz)) {
-            return ColorizerFactory.createColorizer(node.getString());
+        if (StringColorizer.class.isAssignableFrom(clazz)) {
+            return ColorizerFactory.createStringColorizer(node.getString());
+        }
+        if (ComponentColorizer.class.isAssignableFrom(clazz)) {
+            return ColorizerFactory.createComponentColorizer(node.getString());
         }
         if (EffectSettings.class.isAssignableFrom(clazz)) {
             return EffectSettings.fromString(node.getString());
@@ -260,10 +285,25 @@ public abstract class ConfigProcessor {
             SerializationException {
         final List<String> list = node.getList(String.class);
         if (values.colorize()) {
-            list.replaceAll(this.colorizer::colorize);
+            list.replaceAll(this.stringColorizer::colorize);
         }
 
         return list;
+    }
+
+    private Collection<Component> getComponentCollection(final ConfigurationNode node, final Value values) throws
+            SerializationException {
+        final List<String> list = node.getList(String.class);
+        final List<Component> adapted = new ObjectArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            if (values.colorize()) {
+                adapted.add(this.componentColorizer.colorize(list.get(i)));
+            } else {
+                adapted.add(Component.text(list.get(i)));
+            }
+        }
+
+        return adapted;
     }
 
     private Collection<World> getWorldCollection(final ConfigurationNode node, final Value values) throws

@@ -1,6 +1,8 @@
 package com.github.groundbreakingmc.mylib.colorizer;
 
-public interface Colorizer {
+import org.jetbrains.annotations.Nullable;
 
-    String colorize(String message);
+public interface Colorizer<R> {
+
+    R colorize(@Nullable String message);
 }

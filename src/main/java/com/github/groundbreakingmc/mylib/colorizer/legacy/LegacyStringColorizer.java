@@ -1,9 +1,11 @@
-package com.github.groundbreakingmc.mylib.colorizer;
+package com.github.groundbreakingmc.mylib.colorizer.legacy;
+
+import com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class LegacyColorizer implements Colorizer {
+public final class LegacyStringColorizer implements StringColorizer {
 
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([a-fA-F\\d]{6})");
 
@@ -14,7 +16,7 @@ public final class LegacyColorizer implements Colorizer {
         }
 
         final Matcher matcher = HEX_PATTERN.matcher(message);
-        final StringBuffer builder = new StringBuffer(message.length() + 32);
+        final StringBuilder builder = new StringBuilder(message.length() + 32);
         while (matcher.find()) {
             String group = matcher.group(1);
             matcher.appendReplacement(builder,

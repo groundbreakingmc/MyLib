@@ -1,9 +1,12 @@
-package com.github.groundbreakingmc.mylib.colorizer;
+package com.github.groundbreakingmc.mylib.colorizer.legacy;
 
-public final class LegacyAdvancedColorizer implements Colorizer {
+import com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator;
+import org.jetbrains.annotations.Nullable;
+
+public final class LegacyAdvancedColorizer implements StringColorizer {
 
     @Override
-    public String colorize(final String message) {
+    public String colorize(@Nullable String message) {
         if (message == null || message.isEmpty()) {
             return message;
         }

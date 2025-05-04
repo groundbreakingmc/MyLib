@@ -1,10 +1,10 @@
-package com.github.groundbreakingmc.mylib.colorizer;
+package com.github.groundbreakingmc.mylib.colorizer.legacy;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
-public final class MiniMessagesColorizer implements Colorizer {
+public final class MiniMessagesStringColorizer implements StringColorizer {
 
     @Override
     public String colorize(final String message) {
