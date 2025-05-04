@@ -1,6 +1,7 @@
 package com.github.groundbreakingmc.mylib.config;
 
 import com.github.groundbreakingmc.mylib.colorizer.Colorizer;
+import com.github.groundbreakingmc.mylib.colorizer.component.ComponentColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.legacy.StringColorizer;
 import com.github.groundbreakingmc.mylib.utils.player.settings.EffectSettings;
 import com.github.groundbreakingmc.mylib.utils.player.settings.SoundSettings;
@@ -8,6 +9,8 @@ import com.github.groundbreakingmc.mylib.utils.player.settings.TitleSettings;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.experimental.UtilityClass;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -16,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.serialize.SerializationException;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -149,5 +153,21 @@ public class ConfigUtils {
         }
 
         return TitleSettings.fromString(colorizer != null ? colorizer.colorize(string) : string);
+    }
+
+    public Title getTitle(ConfigurationNode node, String path, ComponentColorizer colorizer, Title defaultValue) {
+        final String string = node.node(path).getString();
+        if (string == null) {
+            return defaultValue;
+        }
+
+        final String[] params = string.split(";");
+        final Component title = colorizer.colorize(params[0]);
+        final Component subtitle = params.length > 1 ? colorizer.colorize(params[1]) : Component.empty();
+        final Duration in = Duration.ofSeconds(params.length > 2 ? Integer.parseInt(params[2]) : 10);
+        final Duration stay = Duration.ofSeconds(params.length > 3 ? Integer.parseInt(params[3]) : 40);
+        final Duration out = Duration.ofSeconds(params.length > 4 ? Integer.parseInt(params[4]) : 10);
+
+        return Title.title(title, subtitle, Title.Times.of(in, stay, out));
     }
 }
