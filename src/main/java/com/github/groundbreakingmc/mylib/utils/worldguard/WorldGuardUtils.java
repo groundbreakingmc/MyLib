@@ -266,7 +266,7 @@ public final class WorldGuardUtils {
             final ConcurrentRegionIndex index = (ConcurrentRegionIndex) field.get(regionManager);
 
             for (final ProtectedRegion region : index.values()) {
-                if (region.getOwners().contains(whoseUUID)) {
+                if (isOwner(region, whoseUUID)) {
                     regions.add(region);
                 }
             }
@@ -295,6 +295,30 @@ public final class WorldGuardUtils {
 
     public static ApplicableRegionSet getOverlappingRegion(final ProtectedRegion region, final World world) {
         return REGION_CONTAINER.get(BukkitAdapter.adapt(world)).getApplicableRegions(region);
+    }
+
+    public static boolean isOwner(@NotNull ProtectedRegion region, @NotNull UUID playerUUID) {
+        for (ProtectedRegion parent = region.getParent();
+             parent != null;
+             parent = parent.getParent()) {
+            if (parent.getOwners().contains(playerUUID)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean isMember(@NotNull ProtectedRegion region, @NotNull UUID playerUUID) {
+        for (ProtectedRegion parent = region.getParent();
+             parent != null;
+             parent = parent.getParent()) {
+            if (parent.getMembers().contains(playerUUID)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static {
