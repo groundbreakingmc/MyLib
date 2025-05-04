@@ -12,7 +12,7 @@ public final class VanillaComponentColorizer implements ComponentColorizer {
             return Component.text("null");
         }
         if (message.isEmpty()) {
-            return Component.text("");
+            return Component.empty();
         }
 
         return LegacyComponentSerializer.legacySection().deserialize(message);

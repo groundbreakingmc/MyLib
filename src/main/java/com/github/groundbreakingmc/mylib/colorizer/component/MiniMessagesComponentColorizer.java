@@ -12,7 +12,7 @@ public final class MiniMessagesComponentColorizer implements ComponentColorizer 
             return null;
         }
         if (message.isEmpty()) {
-            return Component.text("");
+            return Component.empty();
         }
 
         return MiniMessage.miniMessage().deserialize(message);
