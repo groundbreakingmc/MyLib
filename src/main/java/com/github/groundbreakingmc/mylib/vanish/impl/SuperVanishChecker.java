@@ -2,7 +2,6 @@ package com.github.groundbreakingmc.mylib.vanish.impl;
 
 import com.github.groundbreakingmc.mylib.vanish.VisibleChecker;
 import de.myzelyam.api.vanish.VanishAPI;
-import de.myzelyam.supervanish.SuperVanish;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
