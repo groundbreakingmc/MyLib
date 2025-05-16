@@ -71,7 +71,7 @@ public final class MyLib extends JavaPlugin {
                     final String className = entryName
                             .replace("/", ".")
                             .replace(".class", "");
-                    Class.forName(className);
+                    MyLib.class.getClassLoader().loadClass(className);
                 }
             }
         } catch (final Exception ex) {
