@@ -78,7 +78,7 @@ public abstract class ConfigProcessor {
         if (!configAnnotation.colorizerPath().isEmpty()) {
             final String mode = config.node(configAnnotation.colorizerPath().split("\\.")).getString();
             this.componentColorizer = ColorizerFactory.createComponentColorizer(mode);
-            this.stringColorizer = ColorizerFactory.createStringColorizer(mode);
+            this.stringColorizer = componentColorizer.getStringColorizer();
         }
 
         this.setupFields(this, config);
