@@ -47,4 +47,14 @@ public final class ModernLogger implements Logger {
     public void warning(Supplier<String> msg) {
         this.warning(msg.get());
     }
+
+    @Override
+    public void debug(String msg) {
+        this.logger.debug(msg != null ? LEGACY_COMPONENT_SERIALIZER.deserialize(msg) : NULL_TEXT);
+    }
+
+    @Override
+    public void debug(Supplier<String> msg) {
+        this.debug(msg.get());
+    }
 }

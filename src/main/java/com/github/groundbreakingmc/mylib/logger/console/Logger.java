@@ -16,4 +16,7 @@ public interface Logger {
 
     void warning(Supplier<String> msg);
 
+    void debug(String msg);
+
+    void debug(Supplier<String> msg);
 }
