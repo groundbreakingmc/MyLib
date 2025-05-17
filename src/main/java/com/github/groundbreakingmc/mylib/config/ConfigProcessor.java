@@ -42,7 +42,6 @@ public abstract class ConfigProcessor {
     @Setter
     private StringColorizer stringColorizer;
     @Getter
-    @Setter
     private ComponentColorizer componentColorizer;
     protected final Map<String, Field> sections;
 
@@ -363,5 +362,10 @@ public abstract class ConfigProcessor {
         for (final String message : messages) {
             this.logger.warn(message);
         }
+    }
+
+    public void setComponentColorizer(ComponentColorizer componentColorizer) {
+        this.componentColorizer = componentColorizer;
+        this.stringColorizer = componentColorizer.getStringColorizer();
     }
 }
