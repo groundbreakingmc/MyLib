@@ -191,4 +191,18 @@ public final class CommandUtils {
 
         return completions;
     }
+
+    @NotNull
+    public static List<String> tabComplete(@NotNull String input, @NotNull List<String> list) {
+        final List<String> result = new ArrayList<>();
+
+        for (int i = 0; i < list.size(); i++) {
+            final String string = list.get(i);
+            if (StringUtil.startsWithIgnoreCase(string, input)) {
+                result.add(string);
+            }
+        }
+
+        return result;
+    }
 }
