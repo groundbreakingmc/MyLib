@@ -1,6 +1,5 @@
 package com.github.groundbreakingmc.mylib.command;
 
-import com.github.groundbreakingmc.mylib.utils.command.CommandUtils;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,12 +8,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-@AllArgsConstructor @Getter @Setter @Builder
+@AllArgsConstructor
+@Getter
+@Setter
+@Builder
 public final class CommandImpl implements TabExecutor {
 
     @Builder.Default
@@ -61,8 +64,7 @@ public final class CommandImpl implements TabExecutor {
         try {
             return (boolean) this.command.executeMethod.invoke(this.command.executor, sender, command, label, args);
         } catch (final Exception ex) {
-            ex.printStackTrace();
-            return true;
+            throw new RuntimeException(ex);
         }
     }
 
@@ -101,7 +103,7 @@ public final class CommandImpl implements TabExecutor {
                 for (final Map.Entry<String, CommandImpl> entry : this.arguments.entrySet()) {
                     final String key = entry.getKey();
                     final CommandImpl value = entry.getValue();
-                    if (CommandUtils.startsWithIgnoreCase(input, key)
+                    if (StringUtil.startsWithIgnoreCase(key, input)
                             && (value.permission == null || sender.hasPermission(value.permission))) {
                         completions.add(entry.getKey());
                     }
