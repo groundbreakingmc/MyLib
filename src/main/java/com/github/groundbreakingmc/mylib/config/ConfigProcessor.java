@@ -70,7 +70,7 @@ public abstract class ConfigProcessor {
         this.sections = new Object2ObjectOpenHashMap<>();
     }
 
-    public final ConfigurationNode setupValues() throws IllegalAccessException {
+    public final ConfigurationNode setupValues() {
         final Class<?> clazz = this.getClass();
         if (!clazz.isAnnotationPresent(Config.class)) {
             throw new UnsupportedOperationException("Class is not annotated with required annotation!");
@@ -85,7 +85,12 @@ public abstract class ConfigProcessor {
             this.stringColorizer = componentColorizer.getStringColorizer();
         }
 
-        this.setupFields(this, config);
+        try {
+            this.setupFields(this, config);
+        } catch (final IllegalAccessException ex) {
+            throw new RuntimeException(ex);
+        }
+
         return config;
     }
 
