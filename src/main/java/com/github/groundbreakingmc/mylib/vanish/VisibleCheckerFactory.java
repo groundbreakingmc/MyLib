@@ -12,8 +12,15 @@ import org.jetbrains.annotations.Nullable;
 @UtilityClass
 public final class VisibleCheckerFactory {
 
+    private static final VisibleChecker VISIBLE_CHECKER = setup();
+
     @Nullable
-    public static VisibleChecker create() {
+    private static VisibleChecker create() {
+        return VISIBLE_CHECKER;
+    }
+
+    @Nullable
+    private static VisibleChecker setup() {
         final PluginManager pluginManager = Bukkit.getPluginManager();
         if (pluginManager.isPluginEnabled("UltimateVanish")) {
             return new UltimateVanishChecker();
