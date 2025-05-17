@@ -15,7 +15,7 @@ public final class VisibleCheckerFactory {
     private static final VisibleChecker VISIBLE_CHECKER = setup();
 
     @Nullable
-    private static VisibleChecker create() {
+    public static VisibleChecker create() {
         return VISIBLE_CHECKER;
     }
 
