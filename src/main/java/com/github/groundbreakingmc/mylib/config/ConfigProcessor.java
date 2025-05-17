@@ -82,6 +82,11 @@ public abstract class ConfigProcessor {
             final String mode = config.node(configAnnotation.colorizerPath().split("\\.")).getString();
             this.componentColorizer = ColorizerFactory.createComponentColorizer(mode);
             this.stringColorizer = componentColorizer.getStringColorizer();
+
+
+            this.info("Created colorizers for: " + this.getClass() + "\n, Component: " + this.componentColorizer.getClass() + "\n, String: " + this.stringColorizer.getClass());
+        } else {
+            this.info("Colorizer path not set for: " + this.getClass() + "\n, skipping creating colorizers.");
         }
 
         try {
@@ -93,8 +98,12 @@ public abstract class ConfigProcessor {
         return config;
     }
 
-    public final void setupValues(final ConfigurationNode config) throws IllegalAccessException {
-        this.setupFields(this, config);
+    public final void setupValues(final ConfigurationNode config) {
+        try {
+            this.setupFields(this, config);
+        } catch (final IllegalAccessException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public final ConfigurationNode getConfig(final String fileName, final Double fileVersion, final String versionPath) {
@@ -116,7 +125,9 @@ public abstract class ConfigProcessor {
             field.setAccessible(true);
             if (field.isAnnotationPresent(Value.class)) {
                 try {
+                    this.info("Trying to get value for the field \"" + field.getName() + "\", with params: ...");
                     final Object value = this.getValue(field, node, field.getAnnotation(Value.class));
+                    this.info("Result value for the field \"" + field.getName() + "\" is: " + value);
                     if (value != null) {
                         field.set(object, value);
                     }
@@ -128,6 +139,7 @@ public abstract class ConfigProcessor {
                 if (objectClass != null) {
                     try {
                         final Section sectionAnnotation = field.getAnnotation(Section.class);
+                        this.info("Trying to setup fields in class \"" + objectClass.getClass() + "\"...");
                         this.setupFields(objectClass, node.node(sectionAnnotation.name()));
                         if (!this.sections.containsKey(sectionAnnotation.name())) {
                             this.sections.put(sectionAnnotation.name(), field);
@@ -150,6 +162,7 @@ public abstract class ConfigProcessor {
         }
 
         final Class<?> fieldType = field.getType();
+        this.info("Detected field type: " + fieldType);
         final Object object = this.get(fieldType, node, values);
         if (object != null) {
             return object;
@@ -354,13 +367,19 @@ public abstract class ConfigProcessor {
         return settings;
     }
 
+    private void info(final String info) {
+        if (this.debug) {
+            this.logger.debug(info);
+        }
+    }
+
     private void warn(final String... messages) {
         if (!this.debug) {
             return;
         }
 
         for (final String message : messages) {
-            this.logger.warn(message);
+            this.logger.warning(message);
         }
     }
 
