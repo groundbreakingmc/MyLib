@@ -229,7 +229,7 @@ public abstract class ConfigProcessor {
         }
         if (Component.class.isAssignableFrom(clazz)) {
             final String value = node.getString();
-            return values.colorize() ? this.componentColorizer.colorize(value) : value;
+            return values.colorize() ? this.componentColorizer.colorize(value) : value != null ? Component.text(value) : null;
         }
         if (int.class.isAssignableFrom(clazz)) {
             return node.getInt();
