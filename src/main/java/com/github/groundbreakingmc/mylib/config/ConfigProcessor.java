@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.Getter;
+import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -38,8 +39,10 @@ public abstract class ConfigProcessor {
     protected final Logger logger;
     protected final boolean debug;
     @Getter
+    @Setter
     private StringColorizer stringColorizer;
     @Getter
+    @Setter
     private ComponentColorizer componentColorizer;
     protected final Map<String, Field> sections;
 
@@ -63,6 +66,7 @@ public abstract class ConfigProcessor {
         this.logger = logger;
         this.debug = debug;
         this.componentColorizer = componentColorizer;
+        this.stringColorizer = componentColorizer != null ? componentColorizer.getStringColorizer() : null;
         this.sections = new Object2ObjectOpenHashMap<>();
     }
 
