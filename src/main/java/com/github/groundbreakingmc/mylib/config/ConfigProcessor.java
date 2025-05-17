@@ -218,10 +218,10 @@ public abstract class ConfigProcessor {
 
     @Nullable
     private Object get(final Class<?> clazz, final ConfigurationNode node, final Value values) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        if (ConfigProcessor.class.isAssignableFrom(clazz)) {
+        if (ConfigSerializable.class.isAssignableFrom(clazz)) {
             final Method serializeMethod = clazz.getDeclaredMethod("serializeValue", Object.class);
             serializeMethod.setAccessible(true);
-            return clazz.cast(serializeMethod.invoke(null, node.rawScalar()));
+            return serializeMethod.invoke(null, node.rawScalar());
         }
         if (String.class.isAssignableFrom(clazz)) {
             final String value = node.getString();
