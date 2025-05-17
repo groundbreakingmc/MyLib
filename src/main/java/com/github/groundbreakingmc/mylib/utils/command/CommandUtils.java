@@ -1,17 +1,24 @@
 package com.github.groundbreakingmc.mylib.utils.command;
 
+import com.github.groundbreakingmc.mylib.vanish.VisibleChecker;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 
 @UtilityClass
+@SuppressWarnings("unused")
 public final class CommandUtils {
 
     public static int getLength(final String input) {
@@ -65,9 +72,6 @@ public final class CommandUtils {
     }
 
     /**
-     * @param input
-     * @param completion
-     * @return
      * @deprecated Use {@link org.bukkit.util.StringUtil.startsWithIgnoreCase(String, String) StringUtil.startsWithIgnoreCase(String)} instead
      */
     @Deprecated
@@ -104,15 +108,24 @@ public final class CommandUtils {
     }
 
     public static List<String> tabCompletePlayerNames(final String[] args) {
+        if (args.length == 0) {
+            return List.of();
+        }
+
         return tabCompletePlayerNames(args[args.length - 1]);
     }
 
     public static List<String> tabCompletePlayerNames(final String input) {
-        final List<String> completions = new ArrayList<>();
+        final Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
+        final List<String> completions = new ObjectArrayList<>(onlinePlayers.size());
 
-        for (final Player player : Bukkit.getOnlinePlayers()) {
+        final Predicate<String> check = input.isEmpty()
+                ? (playerName) -> true
+                : (playerName) -> StringUtil.startsWithIgnoreCase(playerName, input);
+
+        for (final Player player : onlinePlayers) {
             final String playerName = player.getName();
-            if (StringUtil.startsWithIgnoreCase(playerName, input)) {
+            if (check.test(playerName)) {
                 completions.add(playerName);
             }
         }
@@ -122,15 +135,54 @@ public final class CommandUtils {
 
     @ApiStatus.Experimental
     public static List<String> tabCompleteOfflinePlayerNames(final String[] args) {
+        if (args.length == 0) {
+            return List.of();
+        }
+
         return tabCompleteOfflinePlayerNames(args[args.length - 1]);
     }
 
     @ApiStatus.Experimental
     public static List<String> tabCompleteOfflinePlayerNames(final String input) {
-        final List<String> completions = new ArrayList<>();
+        final OfflinePlayer[] offlinePlayers = Bukkit.getOfflinePlayers();
+        final List<String> completions = new ObjectArrayList<>(offlinePlayers.length);
+
+        final Predicate<String> check = input.isEmpty()
+                ? (playerName) -> true
+                : (playerName) -> StringUtil.startsWithIgnoreCase(playerName, input);
 
         // No DRY, because Bukkit#getOfflinePlayers returns an array
+        for (final OfflinePlayer player : offlinePlayers) {
+            final String playerName = player.getName();
+            if (check.test(playerName)) {
+                completions.add(playerName);
+            }
+        }
+
+        return completions;
+    }
+
+    @NotNull
+    public static List<String> smartTabCompletePlayerNames(@NotNull CommandSender sender, @NotNull String[] args, @NotNull VisibleChecker visibleChecker) {
+        if (args.length == 0) {
+            return List.of();
+        }
+
+        final String input = args[args.length - 1];
+        return sender instanceof Player player
+                ? smartTabCompletePlayerNames(player, input, visibleChecker)
+                : tabCompletePlayerNames(input);
+    }
+
+    @NotNull
+    public static List<String> smartTabCompletePlayerNames(@NotNull Player sender, @NotNull String input, @NotNull VisibleChecker visibleChecker) {
+        final List<String> completions = new ArrayList<>();
+
         for (final OfflinePlayer player : Bukkit.getOfflinePlayers()) {
+            if (player.isOnline() && !visibleChecker.canSee(sender, player.getPlayer())) {
+                continue;
+            }
+
             final String playerName = player.getName();
             if (StringUtil.startsWithIgnoreCase(playerName, input)) {
                 completions.add(playerName);
