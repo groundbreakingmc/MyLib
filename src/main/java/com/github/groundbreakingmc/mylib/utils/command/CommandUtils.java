@@ -12,7 +12,6 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
@@ -176,16 +175,14 @@ public final class CommandUtils {
 
     @NotNull
     public static List<String> smartTabCompletePlayerNames(@NotNull Player sender, @NotNull String input, @NotNull VisibleChecker visibleChecker) {
-        final List<String> completions = new ArrayList<>();
+        final List<String> completions = new ObjectArrayList<>();
 
-        for (final OfflinePlayer player : Bukkit.getOfflinePlayers()) {
-            if (player.isOnline() && !visibleChecker.canSee(sender, player.getPlayer())) {
-                continue;
-            }
-
-            final String playerName = player.getName();
-            if (StringUtil.startsWithIgnoreCase(playerName, input)) {
-                completions.add(playerName);
+        for (final Player player : Bukkit.getOnlinePlayers()) {
+            if (visibleChecker.canSee(sender, player.getPlayer())) {
+                final String playerName = player.getName();
+                if (StringUtil.startsWithIgnoreCase(playerName, input)) {
+                    completions.add(playerName);
+                }
             }
         }
 
@@ -194,7 +191,11 @@ public final class CommandUtils {
 
     @NotNull
     public static List<String> tabComplete(@NotNull String input, @NotNull List<String> list) {
-        final List<String> result = new ArrayList<>();
+        if (input.isEmpty()) {
+            return list;
+        }
+
+        final List<String> result = new ObjectArrayList<>();
 
         for (int i = 0; i < list.size(); i++) {
             final String string = list.get(i);
