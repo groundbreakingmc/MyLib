@@ -140,7 +140,7 @@ public abstract class ConfigProcessor {
                     try {
                         final Section sectionAnnotation = field.getAnnotation(Section.class);
                         this.info("Trying to setup fields in class \"" + objectClass.getClass() + "\"...");
-                        this.setupFields(objectClass, node.node(sectionAnnotation.name()));
+                        this.setupFields(objectClass, node.node(sectionAnnotation.name().split("\\.")));
                         if (!this.sections.containsKey(sectionAnnotation.name())) {
                             this.sections.put(sectionAnnotation.name(), field);
                         }
@@ -163,17 +163,17 @@ public abstract class ConfigProcessor {
 
         final Class<?> fieldType = field.getType();
         this.info("Detected field type: " + fieldType);
-        final Object object = this.get(fieldType, node, values);
+        final Object object = this.get(fieldType, valueNode, values);
         if (object != null) {
             return object;
         }
 
         final boolean isList = List.class.isAssignableFrom(fieldType);
         if (isList || Set.class.isAssignableFrom(fieldType)) {
-            return this.getCollection(field, node, values, isList);
+            return this.getCollection(field, valueNode, values, isList);
         }
         if (Map.class.isAssignableFrom(fieldType)) {
-            return this.getMap(field, node, values);
+            return this.getMap(field, valueNode, values);
         }
 
         return null;
