@@ -22,19 +22,19 @@ public final class VisibleCheckerFactory {
     @Nullable
     private static VisibleChecker setup() {
         final PluginManager pluginManager = Bukkit.getPluginManager();
-        if (pluginManager.isPluginEnabled("UltimateVanish")) {
+        if (pluginManager.getPlugin("UltimateVanish") != null) {
             return new UltimateVanishChecker();
         }
-        if (pluginManager.isPluginEnabled("SuperVanish")) {
+        if (pluginManager.getPlugin("SuperVanish") != null) {
             return new SuperVanishChecker();
         }
-        if (pluginManager.isPluginEnabled("Essentials")) {
+        if (pluginManager.getPlugin("Essentials") != null) {
             return new PermissionChecker("essentials.vanish.see");
         }
-        if (pluginManager.isPluginEnabled("CMI")) {
+        if (pluginManager.getPlugin("CMI") != null) {
             return new PermissionChecker("cmi.seevanished");
         }
-        if (pluginManager.isPluginEnabled("SunLight")) {
+        if (pluginManager.getPlugin("SunLight") != null) {
             return new PermissionChecker("sunlight.vanish.bypass.see");
         }
 
