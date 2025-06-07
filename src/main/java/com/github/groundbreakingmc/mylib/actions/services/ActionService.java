@@ -1,6 +1,7 @@
 package com.github.groundbreakingmc.mylib.actions.services;
 
 import com.github.groundbreakingmc.mylib.actions.Action;
+import com.github.groundbreakingmc.mylib.actions.context.ActionContext;
 import com.github.groundbreakingmc.mylib.actions.factories.ActionCreator;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.bukkit.util.StringUtil;
@@ -44,7 +45,7 @@ public class ActionService {
      * @return the created Action, or null if no match is found
      */
     @Nullable
-    public Action<?> fromString(@NotNull String action) {
+    public Action<? extends ActionContext> fromString(@NotNull String action) {
         for (final ActionCreator target : this.actions) {
             if (StringUtil.startsWithIgnoreCase(action, target.getPrefix())) {
                 return target.create(action);
@@ -53,5 +54,4 @@ public class ActionService {
 
         return null;
     }
-
 }

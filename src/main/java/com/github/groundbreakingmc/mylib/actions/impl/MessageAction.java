@@ -18,6 +18,13 @@ public final class MessageAction implements Action<ActionContext> {
     private final boolean broadcast;
     private final Chat vaultChat;
 
+    public MessageAction(String message, ComponentColorizer colorizer, boolean broadcast) {
+        this.message = colorizer.colorize(message);
+        this.colorizer = colorizer;
+        this.broadcast = broadcast;
+        this.vaultChat = VaultUtils.getChatProvider();
+    }
+
     public MessageAction(Component message, ComponentColorizer colorizer, boolean broadcast) {
         this.message = message;
         this.colorizer = colorizer;

@@ -2,8 +2,8 @@ package com.github.groundbreakingmc.mylib.actions.impl;
 
 import com.github.groundbreakingmc.mylib.actions.Action;
 import com.github.groundbreakingmc.mylib.actions.context.ActionContext;
-import com.github.groundbreakingmc.mylib.utils.player.settings.SoundSettings;
 import com.github.groundbreakingmc.mylib.utils.player.PlayerUtils;
+import com.github.groundbreakingmc.mylib.utils.player.settings.SoundSettings;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
