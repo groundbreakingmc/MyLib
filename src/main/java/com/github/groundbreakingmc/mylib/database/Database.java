@@ -42,7 +42,7 @@ public class Database {
 
     public void closeConnection() {
         if (this.dataSource != null && !this.dataSource.isClosed()) {
-            dataSource.close();
+            this.dataSource.close();
         }
     }
 
@@ -67,15 +67,16 @@ public class Database {
      * @param params     params to set
      */
     @SuppressWarnings("SqlSourceToSinkFlow")
-    public void executeUpdateQuery(@NotNull String query, @NotNull Connection connection, @NotNull Object... params) throws
-            SQLException {
+    public int executeUpdateQuery(@NotNull String query, @NotNull Connection connection, @NotNull Object... params)
+            throws SQLException {
         connection.setAutoCommit(false);
         try (final PreparedStatement statement = connection.prepareStatement(query)) {
             for (int i = 0; i < params.length; i++) {
                 statement.setObject(i + 1, params[i]);
             }
-            statement.executeUpdate();
+            int affectedRows = statement.executeUpdate();
             connection.commit();
+            return affectedRows;
         } catch (final SQLException ex) {
             connection.rollback();
             throw ex;
