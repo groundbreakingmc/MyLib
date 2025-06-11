@@ -25,7 +25,7 @@ public class Database {
             hikariConfig.setUsername(userName);
         }
         if (password != null) {
-            hikariConfig.setUsername(password);
+            hikariConfig.setPassword(password);
         }
         hikariConfig.setMinimumIdle(4);
         hikariConfig.setMaximumPoolSize(16);
@@ -33,6 +33,10 @@ public class Database {
         hikariConfig.setIdleTimeout(600000);
         hikariConfig.setMaxLifetime(1800000);
 
+        this.dataSource = new HikariDataSource(hikariConfig);
+    }
+
+    public Database(@NotNull HikariConfig hikariConfig) {
         this.dataSource = new HikariDataSource(hikariConfig);
     }
 
@@ -46,10 +50,11 @@ public class Database {
      * Creates tables in the database if they do not already exist
      * If the tables are already present, no changes will be made
      */
+    @SuppressWarnings("SqlSourceToSinkFlow")
     public void createTables(final Connection connection, final String... queries) throws SQLException {
         try (final Statement statement = connection.createStatement()) {
-            for (int i = 0; i < queries.length; i++) {
-                statement.execute(queries[i]);
+            for (final String query : queries) {
+                statement.execute(query);
             }
         }
     }
@@ -61,7 +66,9 @@ public class Database {
      * @param connection opened connection
      * @param params     params to set
      */
-    public void executeUpdateQuery(final String query, final Connection connection, final Object... params) throws SQLException {
+    @SuppressWarnings("SqlSourceToSinkFlow")
+    public void executeUpdateQuery(@NotNull String query, @NotNull Connection connection, @NotNull Object... params) throws
+            SQLException {
         connection.setAutoCommit(false);
         try (final PreparedStatement statement = connection.prepareStatement(query)) {
             for (int i = 0; i < params.length; i++) {
@@ -85,7 +92,9 @@ public class Database {
      * @param params     params to set
      * @return statement
      */
-    public PreparedStatement getStatement(final String query, final Connection connection, final Object... params) throws SQLException {
+    @SuppressWarnings("SqlSourceToSinkFlow")
+    public PreparedStatement getStatement(@NotNull String query, @NotNull Connection connection, @NotNull Object...
+            params) throws SQLException {
         final PreparedStatement statement = connection.prepareStatement(query);
         for (int i = 0; i < params.length; i++) {
             statement.setObject(i + 1, params[i]);
@@ -102,7 +111,9 @@ public class Database {
      * @param params     search element
      * @return true if the player contains in table
      */
-    public boolean containsInTable(final String query, final Connection connection, final Object... params) throws SQLException {
+    @SuppressWarnings("SqlSourceToSinkFlow")
+    public boolean containsInTable(@NotNull String query, @NotNull Connection connection, @NotNull Object... params) throws
+            SQLException {
         try (final PreparedStatement statement = connection.prepareStatement(query)) {
             for (int i = 0; i < params.length; i++) {
                 statement.setObject(i + 1, params[i]);
