@@ -23,6 +23,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @SuppressWarnings("unused")
 @UtilityClass
@@ -298,22 +300,18 @@ public final class WorldGuardUtils {
     }
 
     public static boolean isOwner(@NotNull ProtectedRegion region, @NotNull UUID playerUUID) {
-        for (ProtectedRegion parent = region.getParent();
-             parent != null;
-             parent = parent.getParent()) {
-            if (parent.getOwners().contains(playerUUID)) {
-                return true;
-            }
-        }
-
-        return false;
+        return checkRegion(region, (parent) -> parent.getOwners().contains(playerUUID));
     }
 
     public static boolean isMember(@NotNull ProtectedRegion region, @NotNull UUID playerUUID) {
-        for (ProtectedRegion parent = region.getParent();
+        return checkRegion(region, (parent) -> parent.getMembers().contains(playerUUID));
+    }
+
+    public static boolean checkRegion(@NotNull ProtectedRegion region, @NotNull Predicate<ProtectedRegion> check) {
+        for (ProtectedRegion parent = region;
              parent != null;
              parent = parent.getParent()) {
-            if (parent.getMembers().contains(playerUUID)) {
+            if (check.test(parent)) {
                 return true;
             }
         }
