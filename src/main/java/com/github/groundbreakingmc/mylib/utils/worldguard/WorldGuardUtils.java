@@ -87,7 +87,7 @@ public final class WorldGuardUtils {
     public @NotNull ProtectedRegion createRegion(@NotNull("Region name can not be null, but it is!") String regionName,
                                                  @NotNull("Location can not be null, but it is!") Location centerLocation,
                                                  int radiusX, int radiusY, int radiusZ) {
-        return createRegion(regionName, centerLocation.subtract(radiusX, radiusY, radiusZ), centerLocation.add(radiusX, radiusY, radiusZ));
+        return createRegion(regionName, centerLocation.clone().add(radiusX, radiusY, radiusZ), centerLocation.clone().subtract(radiusX, radiusY, radiusZ));
     }
 
     /**
