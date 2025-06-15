@@ -265,6 +265,7 @@ public final class WorldGuardUtils {
 
         try {
             final Field field = regionManager.getClass().getDeclaredField("index");
+            field.setAccessible(true);
             final ConcurrentRegionIndex index = (ConcurrentRegionIndex) field.get(regionManager);
 
             for (final ProtectedRegion region : index.values()) {
