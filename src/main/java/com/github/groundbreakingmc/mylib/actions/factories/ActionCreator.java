@@ -11,7 +11,7 @@ import java.util.function.Function;
  * Represents a lazily constructed action with a specific prefix.
  * Used to register and create actions dynamically from string inputs.
  */
-public final class ActionCreator {
+public final class ActionCreator<C extends ActionContext> {
 
     /**
      * The prefix that identifies this action (e.g., "[MESSAGE]").
@@ -22,14 +22,14 @@ public final class ActionCreator {
     /**
      * A factory function that builds an Action from the trimmed input string.
      */
-    private final Function<String, Action<? extends ActionContext>> factory;
+    private final Function<String, Action<C>> factory;
 
     /**
      * @param prefix  the prefix used to identify this raw action
      * @param factory the function that creates an action from a string
      */
     public ActionCreator(@NotNull String prefix,
-                         @NotNull Function<String, Action<? extends ActionContext>> factory) {
+                         @NotNull Function<String, Action<C>> factory) {
         this.prefix = prefix;
         this.factory = factory;
     }
@@ -40,7 +40,7 @@ public final class ActionCreator {
      * @param action the full input string, including prefix
      * @return the created Action
      */
-    public Action<? extends ActionContext> create(@NotNull String action) {
+    public Action<C> create(@NotNull String action) {
         return this.factory.apply(action.substring(this.prefix.length()).trim());
     }
 }

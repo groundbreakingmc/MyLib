@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("unused")
-public final class SoundAction implements Action<ActionContext> {
+public final class SoundAction<C extends ActionContext> implements Action<C> {
 
     private final SoundSettings soundSettings;
 
@@ -17,7 +17,7 @@ public final class SoundAction implements Action<ActionContext> {
     }
 
     @Override
-    public void execute(@NotNull ActionContext context) {
+    public void execute(@NotNull C context) {
         final Player player = context.getPlayer();
         if (player != null) {
             PlayerUtils.playSound(player, this.soundSettings);

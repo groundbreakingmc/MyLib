@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("unused")
-public class CommandAction implements Action<ActionContext> {
+public class CommandAction<C extends ActionContext> implements Action<C> {
 
     private final String command;
     private final boolean console;
@@ -19,7 +19,7 @@ public class CommandAction implements Action<ActionContext> {
     }
 
     @Override
-    public void execute(@NotNull ActionContext context) {
+    public void execute(@NotNull C context) {
         final Player player = context.getPlayer();
         final CommandSender sender = this.console ? Bukkit.getConsoleSender() : player;
 

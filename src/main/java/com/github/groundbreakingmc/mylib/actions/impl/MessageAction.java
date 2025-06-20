@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("unused")
-public final class MessageAction implements Action<ActionContext> {
+public final class MessageAction<C extends ActionContext> implements Action<C> {
 
     private final Component message;
     private final ComponentColorizer colorizer;
@@ -33,7 +33,7 @@ public final class MessageAction implements Action<ActionContext> {
     }
 
     @Override
-    public void execute(@NotNull ActionContext context) {
+    public void execute(@NotNull C context) {
         final Player player = context.getPlayer();
         if (player == null) {
             return;

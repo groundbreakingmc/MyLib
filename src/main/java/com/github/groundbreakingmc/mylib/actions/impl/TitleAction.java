@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import java.time.Duration;
 
 @SuppressWarnings("unused")
-public final class TitleAction implements Action<ActionContext> {
+public final class TitleAction<C extends ActionContext> implements Action<C> {
 
     private final ComponentColorizer colorizer;
     private final Chat vaultChat;
@@ -37,7 +37,7 @@ public final class TitleAction implements Action<ActionContext> {
     }
 
     @Override
-    public void execute(@NotNull ActionContext context) {
+    public void execute(@NotNull C context) {
         final Player player = context.getPlayer();
         if (player == null) {
             return;

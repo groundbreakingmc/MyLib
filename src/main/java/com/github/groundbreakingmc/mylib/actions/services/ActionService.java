@@ -14,9 +14,9 @@ import java.util.Set;
  * Service for registering and retrieving actions by string.
  */
 @SuppressWarnings("unused")
-public class ActionService {
+public class ActionService<C extends ActionContext> {
 
-    private final Set<ActionCreator> actions = new ObjectOpenHashSet<>();
+    private final Set<ActionCreator<C>> actions = new ObjectOpenHashSet<>();
 
     /**
      * Registers a new RawAction.
@@ -25,9 +25,9 @@ public class ActionService {
      * @param override      whether to override an existing action with the same prefix
      * @return true if the action was registered, false otherwise
      */
-    public boolean register(@NotNull ActionCreator actionCreator, boolean override) {
+    public boolean register(@NotNull ActionCreator<C> actionCreator, boolean override) {
         if (!override) {
-            for (final ActionCreator target : this.actions) {
+            for (final ActionCreator<C> target : this.actions) {
                 if (target.getPrefix().equalsIgnoreCase(actionCreator.getPrefix())) {
                     return false;
                 }
@@ -45,8 +45,8 @@ public class ActionService {
      * @return the created Action, or null if no match is found
      */
     @Nullable
-    public Action<? extends ActionContext> fromString(@NotNull String action) {
-        for (final ActionCreator target : this.actions) {
+    public Action<C> fromString(@NotNull String action) {
+        for (final ActionCreator<C> target : this.actions) {
             if (StringUtil.startsWithIgnoreCase(action, target.getPrefix())) {
                 return target.create(action);
             }

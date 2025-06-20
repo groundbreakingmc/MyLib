@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("unused")
-public final class EffectAction implements Action<ActionContext> {
+public final class EffectAction<C extends ActionContext> implements Action<C> {
 
     private final EffectSettings effectSettings;
 
@@ -17,7 +17,7 @@ public final class EffectAction implements Action<ActionContext> {
     }
 
     @Override
-    public void execute(@NotNull ActionContext context) {
+    public void execute(@NotNull C context) {
         final Player player = context.getPlayer();
         if (player != null) {
             PlayerUtils.addPotionEffect(player, this.effectSettings);
