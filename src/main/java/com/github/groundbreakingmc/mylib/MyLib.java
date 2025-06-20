@@ -1,5 +1,6 @@
 package com.github.groundbreakingmc.mylib;
 
+import lombok.Getter;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -13,8 +14,16 @@ import java.util.jar.JarFile;
 @SuppressWarnings("unused")
 public final class MyLib extends JavaPlugin {
 
+    @Getter
+    private static MyLib instance;
+
     @Override
     public void onEnable() {
+        if (instance != null) {
+            throw new RuntimeException("Can not initiate the plugin, because it is already initiated!");
+        }
+        instance = this;
+
         // WorldGuard loads region manager to late :(
         try {
             Class.forName("com.github.groundbreakingmc.mylib.utils.worldguard.WorldGuardUtils");
