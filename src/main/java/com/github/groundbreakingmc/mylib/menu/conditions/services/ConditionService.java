@@ -72,4 +72,23 @@ public class ConditionService<C extends MenuContext> {
         final ConditionCreator<C> conditionFactory = this.conditions.get(name);
         return conditionFactory != null ? conditionFactory.create(params) : null;
     }
+
+    /**
+     * Creates a new {@link ConditionService} with a default (unsynchronized) backing map.
+     *
+     * @return a new instance of {@link ConditionService}
+     */
+    public static <C extends MenuContext> ConditionService<C> create() {
+        return new ConditionService<>(new Object2ObjectOpenHashMap<>());
+    }
+
+    /**
+     * Creates a new {@link ConditionService} with a synchronized backing map.
+     * Use this in multithreaded environments to ensure thread safety.
+     *
+     * @return a thread-safe instance of {@link ConditionService}
+     */
+    public static <C extends MenuContext> ConditionService<C> createSynchronized() {
+        return new ConditionService<>(Object2ObjectMaps.synchronize(new Object2ObjectOpenHashMap<>()));
+    }
 }
