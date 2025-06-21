@@ -37,8 +37,7 @@ public final class PermissionCondition<C extends MenuContext> implements MenuCon
         return this.denyActions;
     }
 
-    @Override
-    public @NotNull String getName() {
+    public static @NotNull String getName() {
         return NAME;
     }
 }

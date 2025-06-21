@@ -29,11 +29,4 @@ public interface MenuCondition<T extends MenuContext> {
      * @return a non-null list of deny actions
      */
     @NotNull List<Action<T>> getDenyActions();
-
-    /**
-     * Returns the unique identifier of this condition, used for registration and lookup.
-     *
-     * @return a non-null, unique condition name
-     */
-    @NotNull String getName();
 }

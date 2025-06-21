@@ -9,6 +9,8 @@ import java.util.List;
 
 public final class InvertCondition implements MenuCondition<MenuContext> {
 
+    private static final String NAME = "INVERT";
+
     private final MenuCondition<MenuContext> condition;
 
     public InvertCondition(@NotNull MenuCondition<MenuContext> condition) {
@@ -25,8 +27,7 @@ public final class InvertCondition implements MenuCondition<MenuContext> {
         return this.condition.getDenyActions();
     }
 
-    @Override
-    public @NotNull String getName() {
-        return this.condition.getName();
+    public static @NotNull String getName() {
+        return NAME;
     }
 }
