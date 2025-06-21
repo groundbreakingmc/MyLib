@@ -1,5 +1,6 @@
 package com.github.groundbreakingmc.mylib.menu.conditions.services;
 
+import com.github.groundbreakingmc.mylib.actions.Action;
 import com.github.groundbreakingmc.mylib.menu.actions.contexts.MenuContext;
 import com.github.groundbreakingmc.mylib.menu.conditions.MenuCondition;
 import com.github.groundbreakingmc.mylib.menu.conditions.factories.ConditionCreator;
@@ -8,6 +9,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -71,6 +73,23 @@ public class ConditionService<C extends MenuContext> {
     public MenuCondition<C> get(@NotNull String name, @NotNull String params) {
         final ConditionCreator<C> conditionFactory = this.conditions.get(name);
         return conditionFactory != null ? conditionFactory.create(params) : null;
+    }
+
+    /**
+     * Retrieves and creates a {@link MenuCondition} by name with the given parameter string and deny actions.
+     * <p>
+     * This will use the associated {@link ConditionCreator} to construct the condition
+     * using the provided raw parameter string and a list of deny {@link Action}s.
+     *
+     * @param name        the name of the registered condition
+     * @param params      the raw parameters to pass to the factory
+     * @param denyActions a list of {@link Action}s to be used as deny actions in the condition
+     * @return the resulting {@link MenuCondition}, or {@code null} if not found
+     */
+    @Nullable
+    public MenuCondition<C> get(@NotNull String name, @NotNull String params, @NotNull List<Action<C>> denyActions) {
+        final ConditionCreator<C> conditionFactory = this.conditions.get(name);
+        return conditionFactory != null ? conditionFactory.create(params, denyActions) : null;
     }
 
     /**

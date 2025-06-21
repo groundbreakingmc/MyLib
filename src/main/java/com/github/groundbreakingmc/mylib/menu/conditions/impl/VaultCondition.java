@@ -36,7 +36,7 @@ public final class VaultCondition<C extends MenuContext> implements MenuConditio
         return this.denyActions;
     }
 
-    public @NotNull String getName() {
+    public static @NotNull String getName() {
         return NAME;
     }
 }
