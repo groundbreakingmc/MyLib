@@ -8,6 +8,7 @@ import com.github.groundbreakingmc.mylib.menu.menus.impl.MenuImpl;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
@@ -220,19 +221,30 @@ public interface Menu extends InventoryHolder {
         MenuBuilder type(@NotNull InventoryType type);
 
         /**
-         * Whether MyLib should automatically handle click and close events for this menu.
-         * See {@link Menu#handle()}.
-         *
-         * @return true if handled
-         */
-        boolean handle();
-
-        /**
          * Gets the configured inventory type.
          *
          * @return the inventory type
          */
         InventoryType type();
+
+        /**
+         * Sets whether MyLib should automatically handle inventory click and close events
+         * for this menu instance. If set to {@code true}, the menu will internally process
+         * {@link InventoryClickEvent} and {@link InventoryCloseEvent} events.
+         *
+         * @param handle {@code true} to enable automatic event handling; {@code false} to disable
+         * @return this builder for chaining
+         * @see Menu#handle()
+         */
+        MenuBuilder handle(boolean handle);
+
+        /**
+         * Returns whether this menu is configured to automatically handle inventory click and close events.
+         *
+         * @return {@code true} if automatic event handling is enabled; {@code false} otherwise
+         * @see Menu#handle()
+         */
+        boolean handle();
 
         /**
          * Sets the open conditions required to display the menu.
