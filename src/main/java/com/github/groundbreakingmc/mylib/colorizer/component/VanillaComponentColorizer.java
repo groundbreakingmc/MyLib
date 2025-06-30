@@ -11,7 +11,6 @@ public final class VanillaComponentColorizer implements ComponentColorizer {
 
     private final StringColorizer colorizer;
 
-    @Deprecated
     public VanillaComponentColorizer() {
         this(new LegacyAdvancedColorizer());
     }
