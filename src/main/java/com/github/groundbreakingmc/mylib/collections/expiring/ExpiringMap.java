@@ -2,21 +2,30 @@ package com.github.groundbreakingmc.mylib.collections.expiring;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+@SuppressWarnings("unused") // I don't wanna see suggestions from IDEA
 public final class ExpiringMap<K, V> {
 
     private static final ForkJoinPool LOADER_POOL = new ForkJoinPool();
 
     private final Cache<K, V> cache;
 
-    public ExpiringMap(final long duration, final TimeUnit unit) {
+    public ExpiringMap(long duration, @NotNull("TimeUnit can not be null, but it is!") TimeUnit timeUnit) {
+        this(duration, timeUnit, LOADER_POOL);
+    }
+
+    public ExpiringMap(long duration,
+                       @NotNull("TimeUnit can not be null, but it is!") TimeUnit timeUnit,
+                       @NotNull("Executor can not be null, but it is!") Executor executor) {
         this.cache = Caffeine.newBuilder()
-                .executor(LOADER_POOL)
-                .expireAfterWrite(duration, unit)
+                .executor(executor)
+                .expireAfterWrite(duration, timeUnit)
                 .build();
     }
 

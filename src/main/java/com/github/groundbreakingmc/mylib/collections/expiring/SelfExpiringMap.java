@@ -4,7 +4,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import org.checkerframework.checker.index.qual.NonNegative;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -17,9 +19,15 @@ public class SelfExpiringMap<K, V> {
     private final Cache<K, ExpiringValue<V>> cache;
     private final TimeUnit timeUnit;
 
-    public SelfExpiringMap(final TimeUnit timeUnit) {
+    public SelfExpiringMap(@NotNull("TimeUnit can not be null, but it is!") TimeUnit timeUnit) {
+        this(timeUnit, LOADER_POOL);
+    }
+
+
+    public SelfExpiringMap(@NotNull("TimeUnit can not be null, but it is!") TimeUnit timeUnit,
+                           @NotNull("Executor can not be null, but it is!") Executor executor) {
         this.cache = Caffeine.newBuilder()
-                .executor(LOADER_POOL)
+                .executor(executor)
                 .expireAfter(new Expiry<K, ExpiringValue<V>>() {
                     @Override
                     public long expireAfterCreate(K k, ExpiringValue<V> expiringValue, long l) {
