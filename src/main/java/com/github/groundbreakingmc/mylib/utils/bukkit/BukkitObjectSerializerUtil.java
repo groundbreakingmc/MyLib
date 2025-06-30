@@ -14,10 +14,10 @@ import java.io.ObjectOutputStream;
 @SuppressWarnings("unused")
 public class BukkitObjectSerializerUtil {
 
-    public static <T> byte @NotNull [] serialize(@NotNull T inventory) {
+    public static <T> byte @NotNull [] serialize(@NotNull T object) {
         final ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
         try (final ObjectOutputStream outputStream = new BukkitObjectOutputStream(byteOutputStream)) {
-            outputStream.writeObject(inventory);
+            outputStream.writeObject(object);
         } catch (final IOException ex) {
             throw new RuntimeException(ex);
         }
