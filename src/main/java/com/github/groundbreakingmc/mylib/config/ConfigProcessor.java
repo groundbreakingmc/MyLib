@@ -4,8 +4,11 @@ import com.github.groundbreakingmc.mylib.colorizer.ColorizerFactory;
 import com.github.groundbreakingmc.mylib.colorizer.component.ComponentColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.legacy.StringColorizer;
 import com.github.groundbreakingmc.mylib.config.annotations.Config;
+import com.github.groundbreakingmc.mylib.config.annotations.ConfigSerializable;
 import com.github.groundbreakingmc.mylib.config.annotations.Section;
 import com.github.groundbreakingmc.mylib.config.annotations.Value;
+import com.github.groundbreakingmc.mylib.config.loaders.ConfigLoader;
+import com.github.groundbreakingmc.mylib.config.loaders.Loaders;
 import com.github.groundbreakingmc.mylib.logger.console.Logger;
 import com.github.groundbreakingmc.mylib.utils.player.settings.EffectSettings;
 import com.github.groundbreakingmc.mylib.utils.player.settings.SoundSettings;
@@ -107,14 +110,14 @@ public abstract class ConfigProcessor {
     }
 
     public final ConfigurationNode getConfig(final String fileName, final Double fileVersion, final String versionPath) {
-        final ConfigurateLoader.Loader loader = ConfigurateLoader.loader(this.plugin, this.logger).fileName(fileName);
+        final ConfigLoader<ConfigurationNode> loader = Loaders.YAML.loader(this.plugin, this.logger).fileName(fileName);
 
         if (fileVersion != null) {
             loader.fileVersion(fileVersion);
         }
 
         if (versionPath != null) {
-            loader.fileVersionPath(versionPath);
+            loader.versionPath(versionPath);
         }
 
         return loader.load();

@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.config;
+package com.github.groundbreakingmc.mylib.config.annotations;
 
 import org.jetbrains.annotations.ApiStatus;
 
