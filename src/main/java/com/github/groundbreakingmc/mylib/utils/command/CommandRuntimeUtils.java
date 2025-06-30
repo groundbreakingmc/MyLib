@@ -5,48 +5,56 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.*;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.SimplePluginManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @UtilityClass
-public final class CommandRuntimeUtils {
+@SuppressWarnings({"unchecked", "unused"})
+public class CommandRuntimeUtils {
 
-    public static final SimpleCommandMap COMMAND_MAP = getCommandMap();
+    private final Constructor<PluginCommand> PLUGIN_COMMAND_CONSTRUCTOR;
+    private final Field COMMAND_MAP_FIELD;
+    private final Field ALIASES_FIELD;
+    private final Method SYNC_COMMANDS_METHOD;
+    public final SimpleCommandMap COMMAND_MAP;
+    private final Map<String, Command> KNOWN_COMMANDS;
 
-    public static void register(final Plugin plugin, final String command, final CommandExecutor commandExecutor) {
-        register(plugin, command, new ArrayList<>(), commandExecutor, null);
+    public void register(@NotNull Plugin plugin, @NotNull String command, @NotNull CommandExecutor commandExecutor) {
+        register(plugin, command, null, commandExecutor, null);
     }
 
-    public static void register(final Plugin plugin, final String command, final TabExecutor tabExecutor) {
-        register(plugin, command, new ArrayList<>(), tabExecutor, tabExecutor);
+    public void register(@NotNull Plugin plugin, @NotNull String command, @NotNull TabExecutor tabExecutor) {
+        register(plugin, command, null, tabExecutor, tabExecutor);
     }
 
-    public static void register(final Plugin plugin, final String command, final List<String> aliases, final CommandExecutor commandExecutor) {
+    public void register(@NotNull Plugin plugin, @NotNull String command, @NotNull List<String> aliases, @NotNull CommandExecutor commandExecutor) {
         register(plugin, command, aliases, commandExecutor, null);
     }
 
-    public static void register(final Plugin plugin, final String command, final List<String> aliases, final TabExecutor tabExecutor) {
+    public void register(@NotNull Plugin plugin, @NotNull String command, @NotNull List<String> aliases, @NotNull TabExecutor tabExecutor) {
         register(plugin, command, aliases, tabExecutor, tabExecutor);
     }
 
-    public static void register(final Plugin plugin,
-                                final String command,
-                                final CommandExecutor commandExecutor,
-                                final TabCompleter tabCompleter) {
-        register(plugin, command, new ArrayList<>(), commandExecutor, tabCompleter);
+    public void register(@NotNull Plugin plugin,
+                         @NotNull String command,
+                         @NotNull CommandExecutor commandExecutor,
+                         @NotNull TabCompleter tabCompleter) {
+        register(plugin, command, null, commandExecutor, tabCompleter);
     }
 
-    public static void register(final Plugin plugin,
-                                final String command,
-                                final List<String> aliases,
-                                final CommandExecutor commandExecutor,
-                                final TabCompleter tabCompleter) {
-        final PluginCommand pluginCommand = getCustomCommand(plugin, command);
+    public void register(@NotNull Plugin plugin,
+                         @NotNull String command,
+                         @Nullable List<String> aliases,
+                         @NotNull CommandExecutor commandExecutor,
+                         @Nullable TabCompleter tabCompleter) {
+        final PluginCommand pluginCommand = createCommand(plugin, command);
         pluginCommand.setExecutor(commandExecutor);
         if (tabCompleter != null) {
             pluginCommand.setTabCompleter(tabCompleter);
@@ -60,58 +68,92 @@ public final class CommandRuntimeUtils {
         syncCommands();
     }
 
-    public PluginCommand getCustomCommand(final Plugin plugin, final String command) {
+    public PluginCommand createCommand(@NotNull Plugin plugin, @NotNull String command) {
         try {
-            final Constructor<PluginCommand> constructor =
-                    PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
-            constructor.setAccessible(true);
-
-            return constructor.newInstance(command, plugin);
+            return PLUGIN_COMMAND_CONSTRUCTOR.newInstance(command, plugin);
         } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
     }
 
-    public void unregisterCustomCommand(final Plugin plugin, final String command) {
-        unregisterCustomCommand(plugin, COMMAND_MAP.getCommand(command));
+    public boolean unregisterCommand(@NotNull String command) {
+        final Command mapCommand = COMMAND_MAP.getCommand(command);
+        if (mapCommand != null) {
+            unregisterCommand(mapCommand);
+            return true;
+        }
+        return false;
     }
 
-    public void unregisterCustomCommand(final Plugin plugin, final Command command) {
+    public void unregisterCommand(@NotNull Command command) {
         try {
-            final Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
-            knownCommandsField.setAccessible(true);
-            final Object map = knownCommandsField.get(COMMAND_MAP);
-
-            final HashMap<String, Command> knownCommands = (HashMap<String, Command>) map;
-            knownCommands.remove(command.getName());
-
+            KNOWN_COMMANDS.remove(command.getName());
             for (final String alias : command.getAliases()) {
-                if (knownCommands.containsKey(alias)
-                        && knownCommands.get(alias).toString().contains(plugin.getName())) {
-                    knownCommands.remove(alias);
-                }
+                KNOWN_COMMANDS.remove(alias);
             }
         } catch (final Exception ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
     }
 
-    public static void syncCommands() {
+    public boolean addAliases(@NotNull String command, List<String> aliases) {
+        final Command mapCommand = COMMAND_MAP.getCommand(command);
+        if (mapCommand != null) {
+            addAliases(command, aliases);
+            return true;
+        }
+        return false;
+    }
+
+    public void addAliases(@NotNull Command command, List<String> aliases) {
         try {
-            final Method syncCommandsMethod = Bukkit.getServer().getClass().getDeclaredMethod("syncCommands");
-            syncCommandsMethod.setAccessible(true);
-            syncCommandsMethod.invoke(Bukkit.getServer());
+            for (int i = 0; i < aliases.size(); i++) {
+                final String alias = aliases.get(i);
+                command.getAliases().add(alias);
+                ((List<String>) ALIASES_FIELD.get(command)).add(alias);
+                KNOWN_COMMANDS.put(alias, command);
+            }
+            syncCommands();
+        } catch (final Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public void syncCommands() {
+        try {
+            SYNC_COMMANDS_METHOD.invoke(Bukkit.getServer());
         } catch (final ReflectiveOperationException ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
     }
 
-    public static SimpleCommandMap getCommandMap() {
+    private SimpleCommandMap getCommandMap() {
         try {
-            final Field commandMapField = SimplePluginManager.class.getDeclaredField("commandMap");
-            commandMapField.setAccessible(true);
+            return (SimpleCommandMap) COMMAND_MAP_FIELD.get(Bukkit.getPluginManager());
+        } catch (final Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
 
-            return (SimpleCommandMap) commandMapField.get(Bukkit.getPluginManager());
+    static {
+        try {
+            PLUGIN_COMMAND_CONSTRUCTOR = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
+            PLUGIN_COMMAND_CONSTRUCTOR.setAccessible(true);
+
+            COMMAND_MAP_FIELD = SimplePluginManager.class.getDeclaredField("commandMap");
+            COMMAND_MAP_FIELD.setAccessible(true);
+
+            ALIASES_FIELD = Command.class.getDeclaredField("aliases");
+            ALIASES_FIELD.setAccessible(true);
+
+            SYNC_COMMANDS_METHOD = Bukkit.getServer().getClass().getDeclaredMethod("syncCommands");
+            SYNC_COMMANDS_METHOD.setAccessible(true);
+
+            COMMAND_MAP = getCommandMap();
+
+            final Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
+            knownCommandsField.setAccessible(true);
+            KNOWN_COMMANDS = (HashMap<String, Command>) knownCommandsField.get(COMMAND_MAP);
         } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
