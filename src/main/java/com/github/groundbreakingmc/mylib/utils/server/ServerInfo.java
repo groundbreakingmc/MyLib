@@ -5,11 +5,18 @@ import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
 
 @UtilityClass
+@SuppressWarnings("unused")
 public final class ServerInfo {
+
+    private int subVersion = -1;
+    private int isPaperOrFork = -1;
 
     public int getSubVersion() {
         try {
-            return Integer.parseInt(Bukkit.getServer().getMinecraftVersion().split("\\.", 3)[1]);
+            if (subVersion < 0) {
+                subVersion = Integer.parseInt(Bukkit.getServer().getMinecraftVersion().split("\\.", 3)[1]);
+            }
+            return subVersion;
         } catch (final NumberFormatException ex) {
             Bukkit.getLogger().warning("\u001b[32mFailed to extract server version. Plugin may not work correctly!");
             return 0;
@@ -18,18 +25,25 @@ public final class ServerInfo {
 
     public int getSubVersion(final Logger logger) {
         try {
-            return Integer.parseInt(Bukkit.getServer().getMinecraftVersion().split("\\.", 3)[1]);
+            if (subVersion < 0) {
+                subVersion = Integer.parseInt(Bukkit.getServer().getMinecraftVersion().split("\\.", 3)[1]);
+            }
+            return subVersion;
         } catch (final NumberFormatException ex) {
-            logger.warn("\u001b[32mFailed to extract server version. Plugin may not work correctly!");
+            logger.warning("\u001b[32mFailed to extract server version. Plugin may not work correctly!");
             return 0;
         }
     }
 
     public boolean isPaperOrFork() {
         try {
-            Class.forName("com.destroystokyo.paper.utils.PaperPluginLogger");
-            return true;
+            if (isPaperOrFork < 0) {
+                Class.forName("com.destroystokyo.paper.utils.PaperPluginLogger");
+                isPaperOrFork = 1;
+            }
+            return isPaperOrFork == 1;
         } catch (final ClassNotFoundException ex) {
+            isPaperOrFork = 0;
             return false;
         }
     }
