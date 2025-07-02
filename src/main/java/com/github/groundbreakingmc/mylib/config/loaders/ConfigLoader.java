@@ -19,7 +19,7 @@ public final class ConfigLoader<C> {
     private final Logger logger;
 
     private String fileName = "config";
-    private double fileVersion = 1.0d;
+    private double fileVersion = .0d;
     private String versionPath = "config-version";
 
     ConfigLoader(@NotNull Function<ConfigLoader<C>, C> factory, @NotNull Plugin plugin, @NotNull Logger logger) {
