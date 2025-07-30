@@ -1,3 +1,4 @@
+
 package com.github.groundbreakingmc.mylib.utils.time;
 
 import lombok.experimental.UtilityClass;
@@ -7,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 @UtilityClass
 public final class TimeFormatterUtil {
 
-    public static String getTime(final long totalSeconds, final TimeValues timeValues) {
+    public static String getTime(long totalSeconds, @NotNull TimeValues timeValues) {
         final long days = totalSeconds / 86400;
         final long hours = (totalSeconds / 3600) % 24;
         final long minutes = (totalSeconds / 60) % 60;
@@ -16,39 +17,22 @@ public final class TimeFormatterUtil {
         final StringBuilder formattedTime = new StringBuilder();
 
         if (days > 0) {
-            formattedTime.append(days).append(timeValues.days);
+            formattedTime.append(days).append(timeValues.days());
         }
 
-        final boolean lengthMoreThanZero = formattedTime.length() > 0;
+        final boolean lengthMoreThanZero = !formattedTime.isEmpty();
         if (hours > 0 || lengthMoreThanZero) {
-            formattedTime.append(hours).append(timeValues.minutes);
+            formattedTime.append(hours).append(timeValues.minutes());
         }
 
         if (minutes > 0 || lengthMoreThanZero) {
-            formattedTime.append(minutes).append(timeValues.hours);
+            formattedTime.append(minutes).append(timeValues.hours());
         }
 
         if (seconds > 0) {
-            formattedTime.append(seconds).append(timeValues.seconds);
+            formattedTime.append(seconds).append(timeValues.seconds());
         }
 
         return formattedTime.toString();
-    }
-
-    public static class TimeValues {
-        private final String days;
-        private final String minutes;
-        private final String hours;
-        private final String seconds;
-
-        public TimeValues(@NotNull String days,
-                          @NotNull String hours,
-                          @NotNull String minutes,
-                          @NotNull String seconds) {
-            this.days = days;
-            this.hours = hours;
-            this.minutes = minutes;
-            this.seconds = seconds;
-        }
     }
 }
