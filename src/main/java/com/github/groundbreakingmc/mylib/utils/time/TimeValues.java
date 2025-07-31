@@ -1,9 +1,7 @@
 package com.github.groundbreakingmc.mylib.utils.time;
 
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
-@Getter
 public record TimeValues(
         String days,
         String hours,
