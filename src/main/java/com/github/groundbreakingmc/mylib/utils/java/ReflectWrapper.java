@@ -28,7 +28,7 @@ public final class ReflectWrapper<T> {
         }
     }
 
-    public static <T> ReflectWrapper<T> forMethod(@NotNull Method method) {
+    public static <T> ReflectWrapper<T> unreflect(@NotNull Method method) {
         try {
             method.setAccessible(true);
             final MethodHandle handle = MethodHandles.lookup().unreflect(method);
@@ -38,7 +38,7 @@ public final class ReflectWrapper<T> {
         }
     }
 
-    public static <T> ReflectWrapper<T> forFieldGetter(@NotNull Field field, @NotNull VarHandle.AccessMode accessMode) {
+    public static <T> ReflectWrapper<T> unreflect(@NotNull Field field, @NotNull VarHandle.AccessMode accessMode) {
         try {
             field.setAccessible(true);
             final MethodHandle handle = MethodHandles.lookup().unreflectVarHandle(field).toMethodHandle(accessMode);
@@ -48,7 +48,7 @@ public final class ReflectWrapper<T> {
         }
     }
 
-    public static <T> ReflectWrapper<T> forConstructor(@NotNull Constructor<T> constructor) {
+    public static <T> ReflectWrapper<T> unreflect(@NotNull Constructor<?> constructor) {
         try {
             constructor.setAccessible(true);
             final MethodHandle handle = MethodHandles.lookup().unreflectConstructor(constructor);
@@ -58,15 +58,15 @@ public final class ReflectWrapper<T> {
         }
     }
 
-    public static <T> Builder<T> constructorBuilder(@NotNull Class<T> returnType) {
+    public static <T> Builder<T> constructorBuilder() {
         return new Builder<>(Builder.Types.CONSTRUCTOR);
     }
 
-    public static <T> Builder<T> methodBuilder(@NotNull Class<T> returnType) {
+    public static <T> Builder<T> methodBuilder() {
         return new Builder<>(Builder.Types.METHOD);
     }
 
-    public static <T> Builder<T> fieldBuilder(@NotNull Class<T> returnType, @NotNull VarHandle.AccessMode accessMode) {
+    public static <T> Builder<T> fieldBuilder(@NotNull VarHandle.AccessMode accessMode) {
         return new Builder<>(accessMode);
     }
 

@@ -12,7 +12,7 @@ class ReflectWrapperTest {
     @Test
     void constructorBuilder() {
         final ReflectWrapper<TestClass> constructorWrapper = ReflectWrapper
-                .constructorBuilder(TestClass.class)
+                .<TestClass>constructorBuilder()
                 .target(TestClass.class)
                 .parameterTypes(String.class)
                 .build();
@@ -26,7 +26,7 @@ class ReflectWrapperTest {
     @Test
     void methodBuilder() {
         final ReflectWrapper<String> methodWrapper = ReflectWrapper
-                .methodBuilder(String.class)
+                .<String>methodBuilder()
                 .target(TestClass.class)
                 .name("sayHello")
                 .parameterTypes(String.class)
@@ -41,13 +41,13 @@ class ReflectWrapperTest {
     @Test
     void fieldBuilder() {
         final ReflectWrapper<Integer> getter = ReflectWrapper
-                .fieldBuilder(int.class, VarHandle.AccessMode.GET)
+                .<Integer>fieldBuilder(VarHandle.AccessMode.GET)
                 .target(TestClass.class)
                 .name("counter")
                 .build();
 
         final ReflectWrapper<Void> setter = ReflectWrapper
-                .fieldBuilder(void.class, VarHandle.AccessMode.SET)
+                .<Void>fieldBuilder(VarHandle.AccessMode.SET)
                 .target(TestClass.class)
                 .name("counter")
                 .build();
