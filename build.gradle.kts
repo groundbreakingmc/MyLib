@@ -94,6 +94,8 @@ dependencies {
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
+            from(components["java"])
+
             pom {
                 name = "MyLib"
                 description = "A lightweight and extensible Java library tailored for Minecraft plugin development."
@@ -133,7 +135,6 @@ bukkit {
     contributors = listOf("OverwriteMC")
     website = "https//github.com/groundbreakingmc/MyLib"
 
-    depend = listOf("PlaceholderAPI")
     softDepend = listOf("WorldGuard", "LuckPerms", "Vault", "UltimateVanish", "SuperVanish", "PremiumVanish")
 
     libraries = listOf("com.github.ben-manes.caffeine:caffeine:3.2.2",
@@ -143,19 +144,18 @@ bukkit {
     )
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
-
-tasks.register("buildPlugin") {
-    dependsOn("build")
-    doLast {
-        println("Built with plugin-yml")
+tasks {
+    register("buildPlugin") {
+        dependsOn("build")
     }
-}
 
-tasks.named("generateBukkitPluginDescription") {
-    onlyIf { gradle.startParameter.taskNames.contains("buildPlugin") }
+    named("generateBukkitPluginDescription") {
+        onlyIf { gradle.startParameter.taskNames.contains("buildPlugin") }
+    }
+
+    test {
+        useJUnitPlatform()
+    }
 }
 
 java {
