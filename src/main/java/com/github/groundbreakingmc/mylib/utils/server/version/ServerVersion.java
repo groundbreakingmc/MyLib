@@ -3,6 +3,8 @@ package com.github.groundbreakingmc.mylib.utils.server.version;
 /**
  * Enum of all major Minecraft versions in ascending order.
  * Ordinal values are used comparisons.
+ *
+ * @version 1.0.1
  */
 public enum ServerVersion {
     // Legacy versions
@@ -44,11 +46,17 @@ public enum ServerVersion {
     UNKNOWN("unknown");
 
     private final String versionString;
+    /**
+     * @since 1.0.1
+     */
+    private final String nmsVersionString;
     private final int minor;
     private final int patch;
 
     ServerVersion(String versionString) {
         this.versionString = versionString;
+        // converting V1_20_R3 to v1_20_R3 for packages
+        this.nmsVersionString = super.name().charAt(0) == 'V' ? ("v" + name().substring(1)) : "UNKNOWN";
         String[] params = versionString.split("\\.");
         this.minor = params.length > 1 ? Integer.parseInt(params[1]) : 0;
         this.patch = params.length > 2 ? Integer.parseInt(params[2]) : 0;
@@ -87,11 +95,11 @@ public enum ServerVersion {
     /**
      * Gets the NMS package version (e.g., "v1_20_R3").
      *
-     * @return NMS version string
+     * @return NMS version string (e.g., "v1_20_R3") or "UNKNOWN"
      * @since 1.0.0
      */
     public String nmsVersion() {
-        return this.name();
+        return this.nmsVersionString;
     }
 
     /**

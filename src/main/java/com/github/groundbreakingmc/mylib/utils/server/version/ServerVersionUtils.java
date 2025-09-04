@@ -6,7 +6,7 @@ import org.bukkit.Bukkit;
  * Utility class for Minecraft server version handling.
  *
  * @author GroundbreakingMC
- * @version 1.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 public final class ServerVersionUtils {
@@ -286,7 +286,7 @@ public final class ServerVersionUtils {
      * @since 1.0.0
      */
     public static String nmsVersionString() {
-        return serverVersion().name();
+        return serverVersion().nmsVersion();
     }
 
     /**
