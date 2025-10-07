@@ -34,7 +34,7 @@ dependencies {
     compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
 
     // https://github.com/MilkBowl/VaultAPI
-    implementation("com.github.MilkBowl:VaultAPI:1.7.1")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
 
     // https://luckperms.net/wiki/Developer-API
     compileOnly("net.luckperms:api:5.4")
@@ -46,41 +46,41 @@ dependencies {
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.5")
 
     // https://www.spigotmc.org/resources/supervanish-be-invisible.1331/
-    implementation("com.github.LeonMangler:SuperVanish:6.2.19")
+    compileOnly("com.github.LeonMangler:SuperVanish:6.2.19")
 
     // https://wiki.placeholderapi.com/developers/using-placeholderapi/
     compileOnly("me.clip:placeholderapi:2.11.6")
 
     // https://mvnrepository.com/artifact/net.kyori/adventure-text-minimessage
-    implementation("net.kyori:adventure-text-minimessage:4.24.0")
+    compileOnly("net.kyori:adventure-text-minimessage:4.24.0")
 
     // https://mvnrepository.com/artifact/net.kyori/adventure-text-logger-slf4j
-    implementation("net.kyori:adventure-text-logger-slf4j:4.24.0")
+    compileOnly("net.kyori:adventure-text-logger-slf4j:4.24.0")
 
     // OTHER
 
     // https://mvnrepository.com/artifact/org.spongepowered/configurate-yaml
-    implementation("org.spongepowered:configurate-yaml:4.2.0")
+    compileOnly("org.spongepowered:configurate-yaml:4.2.0")
 
     // https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine
-    implementation("com.github.ben-manes.caffeine:caffeine:3.2.2")
+    compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.2")
 
     // https://mvnrepository.com/artifact/com.google.guava/guava
-    implementation("com.google.guava:guava:33.4.8-jre")
+    compileOnly("com.google.guava:guava:33.4.8-jre")
 
     // https://mvnrepository.com/artifact/it.unimi.dsi/fastutil
-    implementation("it.unimi.dsi:fastutil:8.5.16")
+    compileOnly("it.unimi.dsi:fastutil:8.5.16")
 
     // https://mvnrepository.com/artifact/com.zaxxer/HikariCP
-    implementation("com.zaxxer:HikariCP:7.0.0")
+    compileOnly("com.zaxxer:HikariCP:7.0.0")
 
     // https://mvnrepository.com/artifact/com.typesafe/config
-    implementation("com.typesafe:config:1.4.3")
+    compileOnly("com.typesafe:config:1.4.3")
 
     // ANNOTATIONS
 
     // https://mvnrepository.com/artifact/org.projectlombok/lombok
-    implementation("org.projectlombok:lombok:1.18.38")
+    compileOnly("org.projectlombok:lombok:1.18.38")
     annotationProcessor("org.projectlombok:lombok:1.18.38")
 
     // TESTS
