@@ -96,6 +96,35 @@ dependencies {
     jmhAnnotationProcessor("org.openjdk.jmh:jmh-generator-annprocess:1.37")
 }
 
+tasks.register<JavaExec>("jmhWarmup") {
+    group = "benchmark"
+    description = "Run JMH benchmarks with warmup"
+    classpath = tasks.jmhJar.get().outputs.files + configurations.jmh.get()
+    mainClass.set("org.openjdk.jmh.Main")
+    args = listOf(
+            "-bm", "AverageTime", // BenchmarkMode
+            "-tu", "ns",          // TimeUnit: ns
+            "-wi", "3",           // Warmup iterations
+            "-i", "5",            // Measurement iteration
+            "-t", "5",            // Measurement time
+            "-f", "3",            // Forks
+    )
+}
+
+tasks.register<JavaExec>("jmhCold") {
+    group = "benchmark"
+    description = "Run JMH benchmarks without warmup (cold state)"
+    classpath = tasks.jmhJar.get().outputs.files + configurations.jmh.get()
+    mainClass.set("org.openjdk.jmh.Main")
+    args = listOf(
+            "-bm", "SingleShotTime", // BenchmarkMode
+            "-tu", "ns", // TimeUnit: ns
+            "-wi", "0",  // Warmup iterations
+            "-i", "1",   // Measurement iteration
+            "-f", "3",   // Forks
+    )
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
