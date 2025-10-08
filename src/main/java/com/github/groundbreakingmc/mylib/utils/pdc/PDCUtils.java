@@ -6,6 +6,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.BlockVector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -82,7 +83,7 @@ public class PDCUtils {
 
     @NotNull
     public NamespacedKey getBlockKey(String namespace, Block block) {
-        return new NamespacedKey(namespace, generateBlockHash(block));
+        return new NamespacedKey(namespace, Integer.toString(generateBlockHash(block)));
     }
 
     @Nullable
@@ -110,11 +111,17 @@ public class PDCUtils {
         return blockContainer != null ? blockContainer : chunkContainer.getAdapterContext().newPersistentDataContainer();
     }
 
-    @NotNull
-    public String generateBlockHash(@NotNull Block block) {
-        return Long.toString((((long) block.getX() & 0xFFFFFFL) << X_PRIME)
-                | (((long) block.getY() & 0xFFFFFL) << Y_PRIME)
-                | ((long) block.getZ() & 0xFFFFFL)
-        );
+    public int generateBlockHash(@NotNull Block block) {
+        int x = block.getX() & 0xF;
+        int y = block.getY();
+        int z = block.getZ() & 0xF;
+        return (y << 8) | (z << 4) | x;
+    }
+
+    public BlockVector tryRecover(Chunk chunk, int encoded) {
+        final int x = encoded & 0xF;
+        final int z = (encoded >> 4) & 0xF;
+        final int y = encoded >> 8;
+        return new BlockVector((chunk.getX() << 4) + x, y, (chunk.getZ() << 4) + z);
     }
 }
