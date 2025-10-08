@@ -2,6 +2,7 @@ plugins {
     java
     `maven-publish`
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
+    id("me.champeau.jmh") version "0.7.3"
 }
 
 group = "com.github.groundbreakingmc"
@@ -88,6 +89,11 @@ dependencies {
     // https://mvnrepository.com/artifact/org.junit
     testImplementation(platform("org.junit:junit-bom:5.9.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+
+    // https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-core
+    jmh("org.openjdk.jmh:jmh-core:1.37")
+    // https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-generator-annprocess
+    jmhAnnotationProcessor("org.openjdk.jmh:jmh-generator-annprocess:1.37")
 }
 
 publishing {
