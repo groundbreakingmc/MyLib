@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
@@ -68,5 +69,9 @@ public final class ExpiringMap<K, V> {
 
     public void clear() {
         this.cache.invalidateAll();
+    }
+
+    public ConcurrentMap<K, V> asMap() {
+        return this.cache.asMap();
     }
 }

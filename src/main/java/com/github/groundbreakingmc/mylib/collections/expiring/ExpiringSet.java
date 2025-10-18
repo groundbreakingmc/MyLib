@@ -2,6 +2,7 @@ package com.github.groundbreakingmc.mylib.collections.expiring;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -38,5 +39,9 @@ public final class ExpiringSet<E> {
 
     public void clear() {
         this.cache.clear();
+    }
+
+    public ConcurrentMap<E, Long> asMap() {
+        return this.cache.asMap();
     }
 }
