@@ -1,101 +1,20 @@
 package com.github.groundbreakingmc.mylib.utils.pdc;
 
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HashCollisionTest {
 
-    @FunctionalInterface
-    interface ToIntTriFunction {
-        int apply(int x, int y, int z);
-    }
-
-    static class HashFunctions {
-        static int stringConcatenation(int x, int y, int z) {
-            return ("x" + x + "y" + y + "z" + z).hashCode();
-        }
-
-        static int bitwiseShiftXOR(int x, int y, int z) {
-            return x ^ (y << 10) ^ (z << 20);
-        }
-
-        static int bitwisePacking(int x, int y, int z) {
-            return (x & 0xFFF) | ((y & 0xFFF) << 12) | ((z & 0xFFF) << 24);
-        }
-
-        static int xorMultiplication(int x, int y, int z) {
-            return x ^ (y * 31) ^ (z * 31 * 31);
-        }
-
-        static int cantorPairing(int x, int y, int z) {
-            int hash = ((x + z) * (x + z + 1) / 2) + z;
-            hash = ((hash + y) * (hash + y + 1) / 2) + y;
-            return hash;
-        }
-
-        static int objectsHash(int x, int y, int z) {
-            return Objects.hash(x, y, z);
-        }
-
-        static int murmurLike(int x, int y, int z) {
-            int hash = x;
-            hash = 31 * hash + y;
-            hash = 31 * hash + z;
-            return hash;
-        }
-
-        static int spatialHashPrimes(int x, int y, int z) {
-            return x * 73856093 ^ y * 19349663 ^ z * 83492791;
-        }
-
-        static int longBasedHash(int x, int y, int z) {
-            long hash = ((long) x << 32) | ((long) y << 16) | z;
-            return (int) (hash ^ (hash >>> 32));
-        }
-
-        static int bitwiseShiftPacking(int x, int y, int z) {
-            return (y << 8) | (z << 4) | x;
-        }
-    }
-
-    static Stream<TestCase> hashFunctionProvider() {
-        return Stream.of(
-                new TestCase("String Concatenation", HashFunctions::stringConcatenation),
-                new TestCase("Bitwise Shift XOR", HashFunctions::bitwiseShiftXOR),
-                new TestCase("Bitwise Packing", HashFunctions::bitwisePacking),
-                new TestCase("XOR Multiplication", HashFunctions::xorMultiplication), // Failed
-                new TestCase("Cantor Pairing", HashFunctions::cantorPairing), // Failed
-                new TestCase("Objects.hash()", HashFunctions::objectsHash), // Failed
-                new TestCase("MurmurHash-like", HashFunctions::murmurLike), // Failed
-                new TestCase("Spatial Hash Primes", HashFunctions::spatialHashPrimes),
-                new TestCase("Long-based Hash", HashFunctions::longBasedHash), // Failed
-                new TestCase("Bitwise Shift Packing", HashFunctions::bitwiseShiftPacking)
-        );
-    }
-
-    static class TestCase {
-        String name;
-        ToIntTriFunction hashFunc;
-
-        TestCase(String name, ToIntTriFunction hashFunc) {
-            this.name = name;
-            this.hashFunc = hashFunc;
-        }
-
-        @Override
-        public String toString() {
-            return this.name;
-        }
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("hashFunctionProvider")
-    void testNoCollisions(TestCase testCase) {
+    @Test
+    @DisplayName("Hash Collision Test")
+    void testNoCollisions() {
         record Pos(int x, int y, int z) {
         }
 
@@ -108,7 +27,7 @@ class HashCollisionTest {
                 for (int z = -16; z < 16; z++) {
                     final int localX = x & 0xF;
                     final int localZ = z & 0xF;
-                    final int hash = testCase.hashFunc.apply(localX, y, localZ);
+                    final int hash = generateBlockHash(localX, y, localZ);
                     final Pos newPos = new Pos(localX, y, localZ);
                     final Pos oldPos = hashes.put(hash, newPos);
                     if (oldPos != null && !oldPos.equals(newPos)) {
@@ -120,11 +39,16 @@ class HashCollisionTest {
         }
 
         if (!collisions.isEmpty()) {
-            System.out.println("\n" + testCase.name + " collisions found:");
+            System.out.println("collisions found:");
             collisions.forEach(System.out::println);
         }
 
-        assertTrue(collisions.isEmpty(),
-                testCase.name + " has " + collisions.size() + " collisions in small range");
+        assertTrue(collisions.isEmpty(), "Found " + collisions.size() + " collisions in one chunk");
+    }
+
+    public int generateBlockHash(int x, int y, int z) {
+        x &= 0xF;
+        z &= 0xF;
+        return (y << 8) | (z << 4) | x;
     }
 }
