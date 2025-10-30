@@ -71,7 +71,7 @@ public final class CommandUtils {
     }
 
     /**
-     * @deprecated Use {@link org.bukkit.util.StringUtil.startsWithIgnoreCase(String, String) StringUtil.startsWithIgnoreCase(String)} instead
+     * @deprecated Use {@link StringUtil#startsWithIgnoreCase(String, String)} instead
      */
     @Deprecated
     public static boolean startsWithIgnoreCase(final String input, final String completion) {
