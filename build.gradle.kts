@@ -23,7 +23,9 @@ dependencies {
     // Plugins
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
     compileOnly("net.luckperms:api:5.4")
-    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.5")
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.5") {
+        exclude(group = "org.spigotmc", module = "spigot-api")
+    }
     compileOnly("com.github.LeonMangler:SuperVanish:6.2.19")
     compileOnly("me.clip:placeholderapi:2.11.6")
 
