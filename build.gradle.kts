@@ -32,7 +32,7 @@ dependencies {
 
     // MINECRAFT
 
-    compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
 
     // https://github.com/MilkBowl/VaultAPI
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
@@ -179,6 +179,11 @@ bukkit {
 }
 
 tasks {
+    withType<JavaCompile> {
+        options.release = 21
+        options.encoding = "UTF-8"
+    }
+
     register("buildPlugin") {
         dependsOn("build")
     }
@@ -194,6 +199,6 @@ tasks {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }

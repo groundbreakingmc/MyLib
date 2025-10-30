@@ -1,5 +1,11 @@
 package com.github.groundbreakingmc.mylib.utils.command;
 
+import com.github.groundbreakingmc.mylib.utils.server.version.ServerVersion;
+import com.github.groundbreakingmc.mylib.utils.server.version.ServerVersionUtils;
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
 import org.bukkit.command.*;
@@ -11,9 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -104,6 +108,7 @@ public class CommandRuntimeUtils {
 
     /**
      * Registers a command with full configuration.
+     * Automatically uses Paper 1.21+ LifecycleEventManager API when available.
      *
      * @param plugin          plugin instance
      * @param command         command name
@@ -116,18 +121,11 @@ public class CommandRuntimeUtils {
                          @Nullable List<String> aliases,
                          @NotNull CommandExecutor commandExecutor,
                          @Nullable TabCompleter tabCompleter) {
-        final PluginCommand pluginCommand = createCommand(plugin, command);
-        pluginCommand.setExecutor(commandExecutor);
-        if (tabCompleter != null) {
-            pluginCommand.setTabCompleter(tabCompleter);
+        if (ServerVersionUtils.isHigherOrEqual(ServerVersion.V1_21_R1)) {
+            registerModern(plugin, command, aliases, commandExecutor, tabCompleter);
+        } else {
+            registerLegacy(plugin, command, aliases, commandExecutor, tabCompleter);
         }
-        if (aliases != null && !aliases.isEmpty()) {
-            pluginCommand.setAliases(aliases);
-        }
-
-        COMMAND_MAP.register(plugin.getDescription().getName(), pluginCommand);
-
-        syncCommands();
     }
 
     /**
@@ -231,6 +229,72 @@ public class CommandRuntimeUtils {
                 }
             }, 100, TimeUnit.MILLISECONDS);
         }
+    }
+
+    /**
+     * Registers command using Paper 1.21+ LifecycleEventManager API.
+     */
+    private void registerModern(@NotNull Plugin plugin,
+                                @NotNull String command,
+                                @Nullable List<String> aliases,
+                                @NotNull CommandExecutor commandExecutor,
+                                @Nullable TabCompleter tabCompleter) {
+        try {
+            final PluginCommand pluginCommand = createCommand(plugin, command);
+            final LifecycleEventManager<Plugin> manager = plugin.getLifecycleManager();
+
+            manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
+                final BasicCommand basicCommand = new BasicCommand() {
+                    @Override
+                    public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+                        commandExecutor.onCommand(stack.getSender(), pluginCommand, command, args);
+                    }
+
+                    @Override
+                    public @NotNull Collection<String> suggest(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+                        if (tabCompleter != null) {
+                            final List<String> suggestions = tabCompleter.onTabComplete(stack.getSender(), pluginCommand, command, args);
+                            if (suggestions != null) return suggestions;
+                        }
+                        return List.of();
+                    }
+                };
+
+                event.registrar().register(
+                        plugin.getPluginMeta(),
+                        command,
+                        null,
+                        aliases != null ? aliases : Collections.emptyList(),
+                        basicCommand
+                );
+            });
+
+        } catch (Throwable th) {
+            plugin.getLogger().warning("Failed to register command via LifecycleEventManager, falling back to legacy method: " + th.getMessage());
+            registerLegacy(plugin, command, aliases, commandExecutor, tabCompleter);
+        }
+    }
+
+    /**
+     * Registers command using legacy reflection-based method (pre-1.21).
+     */
+    private void registerLegacy(@NotNull Plugin plugin,
+                                @NotNull String command,
+                                @Nullable List<String> aliases,
+                                @NotNull CommandExecutor commandExecutor,
+                                @Nullable TabCompleter tabCompleter) {
+        final PluginCommand pluginCommand = createCommand(plugin, command);
+        pluginCommand.setExecutor(commandExecutor);
+        if (tabCompleter != null) {
+            pluginCommand.setTabCompleter(tabCompleter);
+        }
+        if (aliases != null && !aliases.isEmpty()) {
+            pluginCommand.setAliases(aliases);
+        }
+
+        COMMAND_MAP.register(plugin.getDescription().getName(), pluginCommand);
+
+        syncCommands();
     }
 
     private SimpleCommandMap getCommandMap() {
