@@ -53,7 +53,7 @@ public final class LegacyAdvancedColorizer implements StringColorizer {
                 }
 
                 if (ColorCodesTranslator.isColorCharacter(currentChar)) {
-                    builder.append(ColorCodesTranslator.COLOR_CHAR).append(currentChar);
+                    builder.append(ColorCodesTranslator.MC_COLOR_CHAR).append(currentChar);
                     index++;
                     continue;
                 }
@@ -76,11 +76,11 @@ public final class LegacyAdvancedColorizer implements StringColorizer {
 
     private boolean processDoubleTag(final StringBuilder builder, final char[] messageChars, final int index) {
         if (index + 3 <= messageChars.length && this.isValidHexCode(messageChars, index, 3)) {
-            builder.append(ColorCodesTranslator.COLOR_CHAR).append('x');
+            builder.append(ColorCodesTranslator.MC_COLOR_CHAR).append('x');
             for (int i = index; i < index + 3; i++) {
-                builder.append(ColorCodesTranslator.COLOR_CHAR)
+                builder.append(ColorCodesTranslator.MC_COLOR_CHAR)
                         .append(messageChars[i])
-                        .append(ColorCodesTranslator.COLOR_CHAR)
+                        .append(ColorCodesTranslator.MC_COLOR_CHAR)
                         .append(messageChars[i]);
             }
 
@@ -92,9 +92,9 @@ public final class LegacyAdvancedColorizer implements StringColorizer {
 
     private boolean processSingleTag(final StringBuilder builder, final char[] messageChars, final int index) {
         if (index + 6 <= messageChars.length && this.isValidHexCode(messageChars, index, 6)) {
-            builder.append(ColorCodesTranslator.COLOR_CHAR).append('x');
+            builder.append(ColorCodesTranslator.MC_COLOR_CHAR).append('x');
             for (int i = index; i < index + 6; i++) {
-                builder.append(ColorCodesTranslator.COLOR_CHAR).append(messageChars[i]);
+                builder.append(ColorCodesTranslator.MC_COLOR_CHAR).append(messageChars[i]);
             }
 
             return true;

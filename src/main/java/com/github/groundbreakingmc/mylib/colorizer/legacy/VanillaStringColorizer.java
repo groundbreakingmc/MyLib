@@ -11,6 +11,6 @@ public final class VanillaStringColorizer implements StringColorizer {
             return message;
         }
 
-        return ColorCodesTranslator.translateAlternateColorCodes('&', message);
+        return ColorCodesTranslator.translateAlternateColorCodes(message);
     }
 }

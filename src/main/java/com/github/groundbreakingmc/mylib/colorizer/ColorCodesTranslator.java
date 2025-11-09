@@ -5,16 +5,17 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public final class ColorCodesTranslator {
 
-    public static final char COLOR_CHAR = '§';
+    public static final char ALT_COLOR_CHAR = '&';
+    public static final char MC_COLOR_CHAR = '§';
 
-    public static String translateAlternateColorCodes(final char altColorChar, final String textToTranslate) {
+    public static String translateAlternateColorCodes(String textToTranslate) {
         final char[] charArray = textToTranslate.toCharArray();
         int i = 0;
         while (i < charArray.length - 1) {
-            if (charArray[i] == altColorChar) {
+            if (charArray[i] == ALT_COLOR_CHAR) {
                 final char nextChar = charArray[i + 1];
                 if (isColorCharacter(nextChar)) {
-                    charArray[i] = COLOR_CHAR;
+                    charArray[i] = MC_COLOR_CHAR;
                     charArray[++i] = (char) (nextChar | 0x20);
                 }
             }

@@ -17,19 +17,37 @@ public final class LegacyStringColorizer implements StringColorizer {
 
         final Matcher matcher = HEX_PATTERN.matcher(message);
         final StringBuilder builder = new StringBuilder(message.length() + 32);
+        final char[] codes = this.createStartCodes();
+
+        int lastEnd = 0;
         while (matcher.find()) {
-            String group = matcher.group(1);
-            matcher.appendReplacement(builder,
-                    ColorCodesTranslator.COLOR_CHAR + "x" +
-                            ColorCodesTranslator.COLOR_CHAR + group.charAt(0) +
-                            ColorCodesTranslator.COLOR_CHAR + group.charAt(1) +
-                            ColorCodesTranslator.COLOR_CHAR + group.charAt(2) +
-                            ColorCodesTranslator.COLOR_CHAR + group.charAt(3) +
-                            ColorCodesTranslator.COLOR_CHAR + group.charAt(4) +
-                            ColorCodesTranslator.COLOR_CHAR + group.charAt(5));
+            builder.append(message, lastEnd, matcher.start());
+
+            final String group = matcher.group(1);
+            codes[3] = group.charAt(0);
+            codes[5] = group.charAt(1);
+            codes[7] = group.charAt(2);
+            codes[9] = group.charAt(3);
+            codes[11] = group.charAt(4);
+            codes[13] = group.charAt(5);
+
+            lastEnd = matcher.end();
+            builder.append(codes);
         }
 
-        message = matcher.appendTail(builder).toString();
-        return ColorCodesTranslator.translateAlternateColorCodes('&', message);
+        builder.append(message, lastEnd, message.length());
+        return ColorCodesTranslator.translateAlternateColorCodes(builder.toString());
+    }
+
+    private char[] createStartCodes() {
+        return new char[]{
+                ColorCodesTranslator.MC_COLOR_CHAR, 'x',
+                ColorCodesTranslator.MC_COLOR_CHAR, '0',
+                ColorCodesTranslator.MC_COLOR_CHAR, '1',
+                ColorCodesTranslator.MC_COLOR_CHAR, '2',
+                ColorCodesTranslator.MC_COLOR_CHAR, '3',
+                ColorCodesTranslator.MC_COLOR_CHAR, '4',
+                ColorCodesTranslator.MC_COLOR_CHAR, '5',
+        };
     }
 }
