@@ -60,7 +60,8 @@ public class ColorizerFactory {
     @NotNull
     public static StringColorizer createStringColorizer(@NotNull String mode) {
         return switch (mode.toUpperCase()) {
-            case "HEX" -> new HexStringColorizer();
+            case "HEX" -> new FastHexStringColorizer();
+            case "PATTER_HEX" -> new HexStringColorizer();
             case "ADVANCED", "EXTENDED" -> new AdvancedStringColorizer();
             case "MINI_MESSAGE", "MINIMESSAGE" -> new MiniMessageStringColorizer();
             default -> new BasicStringColorizer(); // Safe default
