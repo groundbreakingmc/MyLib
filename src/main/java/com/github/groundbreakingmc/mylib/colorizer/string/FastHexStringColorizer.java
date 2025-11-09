@@ -60,9 +60,7 @@ public class FastHexStringColorizer implements StringColorizer {
         final int length = chars.length;
 
         final StringBuilder builder = new StringBuilder(length + 32);
-        final char[] hex = new char[14];
-        hex[0] = ColorCodesTranslator.MC_COLOR_CHAR;
-        hex[1] = 'x';
+        char[] hex = null;
 
         int start = 0, end;
         loop:
@@ -71,7 +69,12 @@ public class FastHexStringColorizer implements StringColorizer {
             if (ch == ColorCodesTranslator.ALT_COLOR_CHAR) {
                 final char nextChar = chars[++i];
                 if (nextChar == HEX_MARKER) {
-                    if (i + 6 >= chars.length) break;
+                    if (i + 6 >= length) break;
+                    if (hex == null) { // lazy initialization
+                        hex = new char[14];
+                        hex[0] = ColorCodesTranslator.MC_COLOR_CHAR;
+                        hex[1] = 'x';
+                    }
                     end = i - 1;
                     for (int j = 0, hexI = 1; j < 6; j++) {
                         final char hexChar = chars[++i];
@@ -93,7 +96,7 @@ public class FastHexStringColorizer implements StringColorizer {
             ++i;
         }
 
-        builder.append(chars, start, chars.length - start);
+        builder.append(chars, start, length - start);
         return builder.toString();
     }
 
