@@ -85,7 +85,7 @@ public final class LegacyComponentColorizer implements ComponentColorizer {
     @Override
     public Component colorize(@Nullable String message) {
         if (message == null) {
-            return Component.text("null");
+            return null;
         }
         if (message.isEmpty()) {
             return Component.empty();
