@@ -2,7 +2,7 @@ package com.github.groundbreakingmc.mylib.config;
 
 import com.github.groundbreakingmc.mylib.colorizer.Colorizer;
 import com.github.groundbreakingmc.mylib.colorizer.component.ComponentColorizer;
-import com.github.groundbreakingmc.mylib.colorizer.legacy.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.StringColorizer;
 import com.github.groundbreakingmc.mylib.utils.player.settings.EffectSettings;
 import com.github.groundbreakingmc.mylib.utils.player.settings.SoundSettings;
 import com.github.groundbreakingmc.mylib.utils.player.settings.TitleSettings;

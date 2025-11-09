@@ -12,11 +12,11 @@ import java.util.regex.Pattern;
 
 /**
  * Benchmarks for hex color code conversion.
- *
+ * <p>
  * Compares different approaches:
  * - appendReplacement() vs manual buffer management
  * - StringBuilder capacity pre-calculation
- *
+ * <p>
  * Test data: 1000 strings with 1-5 random hex codes each.
  */
 @BenchmarkMode(Mode.AverageTime)
