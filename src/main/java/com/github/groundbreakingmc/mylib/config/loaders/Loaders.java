@@ -1,7 +1,6 @@
 package com.github.groundbreakingmc.mylib.config.loaders;
 
 import com.github.groundbreakingmc.mylib.logger.console.Logger;
-import com.github.groundbreakingmc.mylib.logger.console.LoggerFactory;
 import com.typesafe.config.Config;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -21,7 +20,7 @@ public final class Loaders<C> {
     }
 
     public ConfigLoader<C> loader(@NotNull Plugin plugin) {
-        return this.loader(plugin, LoggerFactory.createLogger(plugin));
+        return this.loader(plugin, Logger.fromBukkit(plugin));
     }
 
     public ConfigLoader<C> loader(@NotNull Plugin plugin, @NotNull Logger logger) {
