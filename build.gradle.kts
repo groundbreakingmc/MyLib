@@ -19,6 +19,7 @@ repositories {
 dependencies {
     // Minecraft
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly("net.md-5:bungeecord-api:1.21-R0.3")
 
     // Plugins
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
