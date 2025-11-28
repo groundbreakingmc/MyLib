@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.collections.сircular;
+package com.github.groundbreakingmc.mylib.collections.circular;
 
 import org.jetbrains.annotations.NotNull;
 

@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.collections.сircular;
+package com.github.groundbreakingmc.mylib.collections.circular;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
