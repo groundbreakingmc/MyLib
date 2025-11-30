@@ -184,7 +184,7 @@ public class CommandRuntimeUtils {
     public boolean addAliases(@NotNull String command, List<String> aliases) {
         final Command mapCommand = COMMAND_MAP.getCommand(command);
         if (mapCommand != null) {
-            addAliases(command, aliases);
+            addAliases(mapCommand, aliases);
             return true;
         }
         return false;
