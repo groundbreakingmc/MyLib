@@ -1,14 +1,9 @@
 package com.github.groundbreakingmc.mylib.utils.command;
 
-import com.github.groundbreakingmc.mylib.utils.server.version.ServerVersion;
-import com.github.groundbreakingmc.mylib.utils.server.version.ServerVersionUtils;
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
-import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
 import org.bukkit.command.*;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.SimplePluginManager;
 import org.jetbrains.annotations.NotNull;
@@ -16,19 +11,15 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Utility class for runtime command registration and management.
  * Provides methods to register, unregister, and modify commands without plugin.yml.
  *
- * <p>Uses reflection to access Bukkit's internal command map and supports
- * Paper/Spigot 1.20.6+ with async command synchronization.</p>
+ * <p>Uses reflection to access Bukkit's internal command map.</p>
  */
 @UtilityClass
 @SuppressWarnings({"unchecked", "unused"})
@@ -37,13 +28,8 @@ public class CommandRuntimeUtils {
     private final Constructor<PluginCommand> PLUGIN_COMMAND_CONSTRUCTOR;
     private final Field COMMAND_MAP_FIELD;
     private final Field ALIASES_FIELD;
-    private final Method SYNC_COMMANDS_METHOD;
     public final SimpleCommandMap COMMAND_MAP;
     private final Map<String, Command> KNOWN_COMMANDS;
-
-    private static final Object SYNC_LOCK = new Object();
-    private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor();
-    private static ScheduledFuture<?> scheduledSync = null;
 
     /**
      * Registers a command with executor only.
@@ -108,7 +94,6 @@ public class CommandRuntimeUtils {
 
     /**
      * Registers a command with full configuration.
-     * Automatically uses Paper 1.21+ LifecycleEventManager API when available.
      *
      * @param plugin          plugin instance
      * @param command         command name
@@ -121,11 +106,18 @@ public class CommandRuntimeUtils {
                          @Nullable List<String> aliases,
                          @NotNull CommandExecutor commandExecutor,
                          @Nullable TabCompleter tabCompleter) {
-        if (ServerVersionUtils.isHigherOrEqual(ServerVersion.V1_21_R1)) {
-            registerModern(plugin, command, aliases, commandExecutor, tabCompleter);
-        } else {
-            registerLegacy(plugin, command, aliases, commandExecutor, tabCompleter);
+        final PluginCommand pluginCommand = createCommand(plugin, command);
+        pluginCommand.setExecutor(commandExecutor);
+        if (tabCompleter != null) {
+            pluginCommand.setTabCompleter(tabCompleter);
         }
+        if (aliases != null && !aliases.isEmpty()) {
+            pluginCommand.setAliases(aliases);
+        }
+
+        COMMAND_MAP.register(plugin.getDescription().getName(), pluginCommand);
+
+        syncCommands();
     }
 
     /**
@@ -212,89 +204,11 @@ public class CommandRuntimeUtils {
 
     /**
      * Synchronizes commands with all online players.
-     * Uses debouncing (100ms) to prevent concurrent modification exceptions on Paper 1.21+.
-     * Multiple rapid calls will be coalesced into a single sync operation.
      */
     public void syncCommands() {
-        synchronized (SYNC_LOCK) {
-            if (scheduledSync != null && !scheduledSync.isDone()) {
-                scheduledSync.cancel(false);
-            }
-
-            scheduledSync = EXECUTOR.schedule(() -> {
-                try {
-                    SYNC_COMMANDS_METHOD.invoke(Bukkit.getServer());
-                } catch (final ReflectiveOperationException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }, 100, TimeUnit.MILLISECONDS);
+        for (final Player player : Bukkit.getOnlinePlayers()) {
+            player.updateCommands();
         }
-    }
-
-    /**
-     * Registers command using Paper 1.21+ LifecycleEventManager API.
-     */
-    private void registerModern(@NotNull Plugin plugin,
-                                @NotNull String command,
-                                @Nullable List<String> aliases,
-                                @NotNull CommandExecutor commandExecutor,
-                                @Nullable TabCompleter tabCompleter) {
-        try {
-            final PluginCommand pluginCommand = createCommand(plugin, command);
-            final LifecycleEventManager<Plugin> manager = plugin.getLifecycleManager();
-
-            manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
-                final BasicCommand basicCommand = new BasicCommand() {
-                    @Override
-                    public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
-                        commandExecutor.onCommand(stack.getSender(), pluginCommand, command, args);
-                    }
-
-                    @Override
-                    public @NotNull Collection<String> suggest(@NotNull CommandSourceStack stack, @NotNull String[] args) {
-                        if (tabCompleter != null) {
-                            final List<String> suggestions = tabCompleter.onTabComplete(stack.getSender(), pluginCommand, command, args);
-                            if (suggestions != null) return suggestions;
-                        }
-                        return List.of();
-                    }
-                };
-
-                event.registrar().register(
-                        plugin.getPluginMeta(),
-                        command,
-                        null,
-                        aliases != null ? aliases : Collections.emptyList(),
-                        basicCommand
-                );
-            });
-
-        } catch (Throwable th) {
-            plugin.getLogger().warning("Failed to register command via LifecycleEventManager, falling back to legacy method: " + th.getMessage());
-            registerLegacy(plugin, command, aliases, commandExecutor, tabCompleter);
-        }
-    }
-
-    /**
-     * Registers command using legacy reflection-based method (pre-1.21).
-     */
-    private void registerLegacy(@NotNull Plugin plugin,
-                                @NotNull String command,
-                                @Nullable List<String> aliases,
-                                @NotNull CommandExecutor commandExecutor,
-                                @Nullable TabCompleter tabCompleter) {
-        final PluginCommand pluginCommand = createCommand(plugin, command);
-        pluginCommand.setExecutor(commandExecutor);
-        if (tabCompleter != null) {
-            pluginCommand.setTabCompleter(tabCompleter);
-        }
-        if (aliases != null && !aliases.isEmpty()) {
-            pluginCommand.setAliases(aliases);
-        }
-
-        COMMAND_MAP.register(plugin.getDescription().getName(), pluginCommand);
-
-        syncCommands();
     }
 
     private SimpleCommandMap getCommandMap() {
@@ -315,9 +229,6 @@ public class CommandRuntimeUtils {
 
             ALIASES_FIELD = Command.class.getDeclaredField("aliases");
             ALIASES_FIELD.setAccessible(true);
-
-            SYNC_COMMANDS_METHOD = Bukkit.getServer().getClass().getDeclaredMethod("syncCommands");
-            SYNC_COMMANDS_METHOD.setAccessible(true);
 
             COMMAND_MAP = getCommandMap();
 
