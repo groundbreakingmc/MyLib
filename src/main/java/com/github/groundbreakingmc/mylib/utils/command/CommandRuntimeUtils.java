@@ -11,7 +11,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -234,7 +233,7 @@ public class CommandRuntimeUtils {
 
             final Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
             knownCommandsField.setAccessible(true);
-            KNOWN_COMMANDS = (HashMap<String, Command>) knownCommandsField.get(COMMAND_MAP);
+            KNOWN_COMMANDS = (Map<String, Command>) knownCommandsField.get(COMMAND_MAP);
         } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
