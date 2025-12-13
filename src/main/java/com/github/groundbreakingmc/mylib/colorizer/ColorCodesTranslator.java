@@ -32,6 +32,8 @@ public final class ColorCodesTranslator {
      */
     public static final char MC_COLOR_CHAR = '§';
 
+    public static final char HEX_MARKER = 'x';
+
     /**
      * Translates alternate color codes to Minecraft format.
      * <p>
@@ -46,16 +48,16 @@ public final class ColorCodesTranslator {
      */
     public static String translateAlternateColorCodes(String textToTranslate) {
         final char[] charArray = textToTranslate.toCharArray();
-        int i = 0;
-        while (i < charArray.length - 1) {
+        for (int i = 0; i < charArray.length - 1; i++) {
             if (charArray[i] == ALT_COLOR_CHAR) {
-                final char nextChar = charArray[i + 1];
-                if (isColorCharacter(nextChar)) {
+                char nextChar = charArray[i + 1];
+                if ((nextChar == HEX_MARKER || nextChar == 'X') && i + 13 < charArray.length) {
+                    i = processHexColorCode(charArray, i + 1);
+                } else if (isColorCharacter(nextChar)) {
                     charArray[i] = MC_COLOR_CHAR;
                     charArray[++i] = (char) (nextChar | 0x20);
                 }
             }
-            i++;
         }
 
         return new String(charArray);
@@ -68,20 +70,85 @@ public final class ColorCodesTranslator {
      * <ul>
      *   <li>0-9: Standard colors (black, dark blue, etc.)</li>
      *   <li>a-f, A-F: Standard colors (green to red)</li>
-     *   <li>k-o, K-O: Format codes</li>
+     *   <li>l, L: Bold</li>
+     *   <li>m, M: Strikethrough</li>
+     *   <li>n, N: Underline</li>
+     *   <li>o, O: Italic</li>
      *   <li>r, R: Reset</li>
-     *   <li>x, X: Hex color prefix</li>
+     *   <li>k, K: Obfuscated</li>
      * </ul>
+     * Note: 'x' is intentionally excluded as it requires special handling for hex colors.
      *
      * @param ch the character to check
      * @return true if the character is a valid color code, false otherwise
      */
-    public static boolean isColorCharacter(final char ch) {
+    public static boolean isColorCharacter(char ch) {
         return switch (ch) {
             case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
                     'a', 'A', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 'f', 'F',
-                    'r', 'R', 'k', 'K', 'm', 'M', 'n', 'N', 'o', 'O', 'x', 'X' -> true;
+                    'l', 'L', 'm', 'M', 'n', 'N', 'o', 'O', 'r', 'R', 'k', 'K' -> true;
             default -> false;
         };
+    }
+
+    /**
+     * Checks if a character is a valid hexadecimal digit.
+     * <p>
+     * Valid characters are: 0-9, a-f, A-F (case-insensitive).
+     * Use a switch expression for optimal performance.
+     *
+     * @param ch the character to check
+     * @return true if the character is a valid hex digit, false otherwise
+     */
+    public static boolean isHexCharacter(final char ch) {
+        return switch (ch) {
+            case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                    'a', 'A', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 'f', 'F' -> true;
+            default -> false;
+        };
+    }
+
+
+    /**
+     * Processes hex color code sequence starting at the given position.
+     * <p>
+     * Validates and converts &amp;x&amp;R&amp;R&amp;G&amp;G&amp;B&amp;B pattern to §x§r§r§g§g§b§b.
+     * Modifies the char array in-place and returns the new position after processing.
+     *
+     * @param chars    the character array to process
+     * @param startPos position of 'x' or 'X' character (after initial '&amp;')
+     * @return new position after a hex sequence, or original position if invalid
+     */
+    public static int processHexColorCode(char[] chars, int startPos) {
+        int i = startPos + 1; // skip 'x'/'X'
+        int changed = 0;
+
+        for (; i < chars.length - 1; i++) {
+            if (chars[i] == ALT_COLOR_CHAR) {
+                char nextChar = chars[i + 1];
+                if (isHexCharacter(nextChar)) {
+                    chars[i] = MC_COLOR_CHAR;
+                    chars[++i] = (char) (nextChar | 0x20);
+                    changed++;
+                    continue;
+                } else if (isColorCharacter(nextChar)) {
+                    System.out.println(nextChar + " got as color character");
+                    chars[i] = MC_COLOR_CHAR;
+                    chars[++i] = (char) (nextChar | 0x20);
+                    continue;
+                }
+            }
+            break;
+        }
+
+        if (changed == 6) {
+            // Convert initial &x to §x
+            chars[startPos - 1] = MC_COLOR_CHAR;
+            chars[startPos] = HEX_MARKER;
+        } else {
+            System.out.println("CHANGED - " + changed);
+        }
+
+        return i;
     }
 }

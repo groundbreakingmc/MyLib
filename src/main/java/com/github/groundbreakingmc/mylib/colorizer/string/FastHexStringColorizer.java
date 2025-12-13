@@ -3,6 +3,8 @@ package com.github.groundbreakingmc.mylib.colorizer.string;
 import com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator;
 import org.jetbrains.annotations.Nullable;
 
+import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.*;
+
 /**
  * High-performance hex colorizer using manual parsing instead of regex.
  * <p>
@@ -67,12 +69,12 @@ public class FastHexStringColorizer implements StringColorizer {
         for (int i = 0; i < length - 1; ) {
             final char ch = chars[i];
             if (ch == ColorCodesTranslator.ALT_COLOR_CHAR) {
-                final char nextChar = chars[++i];
+                char nextChar = chars[++i];
                 if (nextChar == HEX_MARKER) {
                     if (i + 6 >= length) break;
                     if (hex == null) { // lazy initialization
                         hex = new char[14];
-                        hex[0] = ColorCodesTranslator.MC_COLOR_CHAR;
+                        hex[0] = MC_COLOR_CHAR;
                         hex[1] = 'x';
                     }
                     end = i - 1;
@@ -81,16 +83,16 @@ public class FastHexStringColorizer implements StringColorizer {
                         if (!isHexCharacter(hexChar)) {
                             continue loop;
                         }
-                        hex[++hexI] = ColorCodesTranslator.MC_COLOR_CHAR;
+                        hex[++hexI] = MC_COLOR_CHAR;
                         hex[++hexI] = hexChar;
                     }
                     builder.append(chars, start, end - start).append(hex);
                     start = i + 1;
-                } else {
-                    if (ColorCodesTranslator.isColorCharacter(nextChar)) {
-                        chars[i - 1] = ColorCodesTranslator.MC_COLOR_CHAR;
-                        chars[i] = (char) (nextChar | 0x20); // quick version of 'to lower case' for character
-                    }
+                } else if ((nextChar == 'x' || nextChar == 'X') && i + 13 < chars.length) {
+                    i = processHexColorCode(chars, i);
+                } else if (isColorCharacter(nextChar)) {
+                    chars[i - 1] = MC_COLOR_CHAR;
+                    chars[i] = (char) (nextChar | 0x20); // quick version of 'to lower case' for character
                 }
             }
             ++i;
@@ -98,22 +100,5 @@ public class FastHexStringColorizer implements StringColorizer {
 
         builder.append(chars, start, length - start);
         return builder.toString();
-    }
-
-    /**
-     * Checks if a character is a valid hexadecimal digit.
-     * <p>
-     * Valid characters are: 0-9, a-f, A-F (case-insensitive).
-     * Uses a switch expression for optimal performance.
-     *
-     * @param ch the character to check
-     * @return true if the character is a valid hex digit, false otherwise
-     */
-    public static boolean isHexCharacter(final char ch) {
-        return switch (ch) {
-            case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-                    'a', 'A', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 'f', 'F' -> true;
-            default -> false;
-        };
     }
 }
