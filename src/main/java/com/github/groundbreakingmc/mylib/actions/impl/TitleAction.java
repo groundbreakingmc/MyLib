@@ -6,6 +6,7 @@ import com.github.groundbreakingmc.mylib.colorizer.component.ComponentColorizer;
 import com.github.groundbreakingmc.mylib.utils.vault.VaultUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
+import net.kyori.adventure.util.Ticks;
 import net.milkbowl.vault.chat.Chat;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -30,10 +31,10 @@ public final class TitleAction<C extends ActionContext> implements Action<C> {
         this.title = colorizer.colorize(params[0]);
         this.subtitle = params.length > 1 ? colorizer.colorize(params[1]) : Component.empty();
 
-        final Duration in = Duration.ofSeconds(params.length > 2 ? Integer.parseInt(params[2]) : 10);
-        final Duration stay = Duration.ofSeconds(params.length > 3 ? Integer.parseInt(params[3]) : 40);
-        final Duration out = Duration.ofSeconds(params.length > 4 ? Integer.parseInt(params[4]) : 10);
-        this.times = Title.Times.of(in, stay, out);
+        final Duration in = Ticks.duration(params.length > 2 ? Integer.parseInt(params[2]) : 10);
+        final Duration stay = Ticks.duration(params.length > 3 ? Integer.parseInt(params[3]) : 40);
+        final Duration out = Ticks.duration(params.length > 4 ? Integer.parseInt(params[4]) : 10);
+        this.times = Title.Times.times(in, stay, out);
     }
 
     @Override
