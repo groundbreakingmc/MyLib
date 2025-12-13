@@ -16,6 +16,10 @@ public final class EffectAction<C extends ActionContext> implements Action<C> {
         this.effectSettings = EffectSettings.fromString(action);
     }
 
+    public EffectAction(@NotNull EffectSettings effectSettings) {
+        this.effectSettings = effectSettings;
+    }
+
     @Override
     public void execute(@NotNull C context) {
         final Player player = context.getPlayer();

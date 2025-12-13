@@ -26,6 +26,10 @@ public final class SoundAction<C extends ActionContext> implements Action<C> {
         this.sound = Sound.sound(Key.key(name), source, volume, pitch);
     }
 
+    public SoundAction(@NotNull Sound sound) {
+        this.sound = sound;
+    }
+
     @Override
     public void execute(@NotNull C context) {
         final Player player = context.getPlayer();

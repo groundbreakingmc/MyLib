@@ -37,6 +37,17 @@ public final class TitleAction<C extends ActionContext> implements Action<C> {
         this.times = Title.Times.times(in, stay, out);
     }
 
+    public TitleAction(@NotNull Component title,
+                       @NotNull Component subtitle,
+                       @NotNull Title.Times times,
+                       @NotNull ComponentColorizer colorizer) {
+        this.title = title;
+        this.subtitle = subtitle;
+        this.times = times;
+        this.colorizer = colorizer;
+        this.vaultChat = VaultUtils.getChatProvider();
+    }
+
     @Override
     public void execute(@NotNull C context) {
         final Player player = context.getPlayer();
