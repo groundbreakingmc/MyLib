@@ -33,9 +33,10 @@ public class UpdatesChecker {
     }
 
     public void check(final boolean downloadUpdate, final boolean commandCall) {
+        HttpURLConnection connection = null;
         try {
             final URL url = new URL(this.stringURL);
-            final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(10000);
@@ -69,6 +70,10 @@ public class UpdatesChecker {
             this.logger.warn("Failed to check for update: " + ex.getMessage());
             this.logger.warn(this.errorMessage);
             throw new RuntimeException(ex);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
     }
 
@@ -107,9 +112,10 @@ public class UpdatesChecker {
             return;
         }
 
+        HttpURLConnection connection = null;
         try {
             final URL url = new URL(this.downloadLink);
-            final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(30000);
             connection.setReadTimeout(120000);
@@ -148,6 +154,10 @@ public class UpdatesChecker {
             }
         } catch (final IOException ex) {
             throw new RuntimeException(ex);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
     }
 
