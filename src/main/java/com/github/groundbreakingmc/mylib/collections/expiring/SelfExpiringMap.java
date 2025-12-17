@@ -14,13 +14,11 @@ import java.util.function.Function;
 @SuppressWarnings("unused")
 public class SelfExpiringMap<K, V> {
 
-    private static final ForkJoinPool LOADER_POOL = new ForkJoinPool();
-
     private final Cache<K, ExpiringValue<V>> cache;
     private final TimeUnit timeUnit;
 
     public SelfExpiringMap(@NotNull("TimeUnit can not be null, but it is!") TimeUnit timeUnit) {
-        this(timeUnit, LOADER_POOL);
+        this(timeUnit, ForkJoinPool.commonPool());
     }
 
 
