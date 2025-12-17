@@ -87,12 +87,15 @@ public class Database {
 
     /**
      * Executes the specified query and returns result set.
+     * WARNING: Caller is responsible for closing the returned PreparedStatement.
      *
      * @param query      query to execute
      * @param connection opened connection
      * @param params     params to set
-     * @return statement
+     * @return statement that MUST be closed by caller
+     * @deprecated Use try-with-resources pattern to avoid resource leaks
      */
+    @Deprecated(forRemoval = true)
     @SuppressWarnings("SqlSourceToSinkFlow")
     public PreparedStatement getStatement(@NotNull String query, @NotNull Connection connection, @NotNull Object...
             params) throws SQLException {

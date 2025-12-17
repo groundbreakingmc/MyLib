@@ -22,6 +22,10 @@ public class ListenerUtils {
 
     static final Map<Listener, Set<ListenerData>> REGISTERED = new HashMap<>();
 
+    public static void clearAllRegistered() {
+        REGISTERED.clear();
+    }
+
     @Nullable
     @ApiStatus.Experimental
     public RegisteredListener register(@NotNull Plugin plugin,

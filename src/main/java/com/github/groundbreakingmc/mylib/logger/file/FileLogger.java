@@ -1,5 +1,7 @@
 package com.github.groundbreakingmc.mylib.logger.file;
 
+import lombok.Setter;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -13,16 +15,13 @@ import java.util.function.Supplier;
 import java.util.zip.GZIPOutputStream;
 
 @SuppressWarnings("unused")
-public class FileLogger {
+public class FileLogger implements AutoCloseable {
 
-    private static final ExecutorService GENERAL_EXECUTOR = Executors.newSingleThreadExecutor(threadFactory -> {
-        final Thread thread = new Thread(threadFactory, "MyLib-File-Logger");
-        thread.setDaemon(true);
-        return thread;
-    });
+    private static volatile ExecutorService GENERAL_EXECUTOR;
 
     private final BufferedWriter writer;
-    private ExecutorService executor = GENERAL_EXECUTOR;
+    @Setter
+    private ExecutorService executor;
 
     public FileLogger(final String logFolder) throws IOException {
         this(logFolder, "latest.log");
@@ -45,6 +44,25 @@ public class FileLogger {
         }
 
         this.writer = Files.newBufferedWriter(logFile.toPath(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        this.executor = getOrCreateExecutor();
+    }
+
+    private static synchronized ExecutorService getOrCreateExecutor() {
+        if (GENERAL_EXECUTOR == null) {
+            GENERAL_EXECUTOR = Executors.newSingleThreadExecutor(threadFactory -> {
+                final Thread thread = new Thread(threadFactory, "MyLib-File-Logger");
+                thread.setDaemon(true);
+                return thread;
+            });
+        }
+        return GENERAL_EXECUTOR;
+    }
+
+    public static synchronized void shutdownGlobalExecutor() {
+        if (GENERAL_EXECUTOR != null && !GENERAL_EXECUTOR.isShutdown()) {
+            GENERAL_EXECUTOR.shutdown();
+            GENERAL_EXECUTOR = null;
+        }
     }
 
     public void log(final Supplier<String> logEntry) {
@@ -60,7 +78,7 @@ public class FileLogger {
     }
 
     private static void archiveLogFile(final File logFile, final String logFolder) {
-        GENERAL_EXECUTOR.execute(() -> {
+        getOrCreateExecutor().execute(() -> {
             try {
                 final File archive = getArchiveFile(logFolder);
 
@@ -125,17 +143,19 @@ public class FileLogger {
     }
 
     public void useDefaultExecutor() {
-        this.executor = GENERAL_EXECUTOR;
+        this.executor = getOrCreateExecutor();
     }
 
-    public void setExecutor(final ExecutorService executor) {
-        this.executor = executor;
-    }
-
-    public void stop() throws IOException {
+    @Override
+    public void close() throws IOException {
         this.writer.close();
-        if (this.executor != GENERAL_EXECUTOR) {
+        if (this.executor != GENERAL_EXECUTOR && !this.executor.isShutdown()) {
             this.executor.shutdown();
         }
+    }
+
+    @Deprecated(forRemoval = true)
+    public void stop() throws IOException {
+        this.close();
     }
 }

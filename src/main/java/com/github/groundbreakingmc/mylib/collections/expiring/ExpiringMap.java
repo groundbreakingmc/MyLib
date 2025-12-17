@@ -13,12 +13,10 @@ import java.util.function.Function;
 @SuppressWarnings("unused") // I don't wanna see suggestions from IDEA
 public final class ExpiringMap<K, V> {
 
-    private static final ForkJoinPool LOADER_POOL = new ForkJoinPool();
-
     private final Cache<K, V> cache;
 
     public ExpiringMap(long duration, @NotNull("TimeUnit can not be null, but it is!") TimeUnit timeUnit) {
-        this(duration, timeUnit, LOADER_POOL);
+        this(duration, timeUnit, ForkJoinPool.commonPool());
     }
 
     public ExpiringMap(long duration,
