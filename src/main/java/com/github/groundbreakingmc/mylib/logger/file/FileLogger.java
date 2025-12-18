@@ -1,120 +1,158 @@
 package com.github.groundbreakingmc.mylib.logger.file;
 
-import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.zip.GZIPOutputStream;
 
-@SuppressWarnings("unused")
 public class FileLogger implements AutoCloseable {
 
-    private static volatile ExecutorService GENERAL_EXECUTOR;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private final BufferedWriter writer;
-    @Setter
-    private ExecutorService executor;
+    private static volatile ExecutorService globalExecutor;
 
-    public FileLogger(final String logFolder) throws IOException {
-        this(logFolder, "latest.log");
+    private final Path logPath;
+    private final int maxSize;
+    private final ExecutorService executor;
+
+    private volatile boolean failed = false;
+    private volatile boolean closed = false;
+
+    // accessed only from executor thread
+    private BufferedWriter writer;
+    private long currentSize = 0;
+
+    public FileLogger(String logFolder) throws IOException {
+        this(logFolder, "latest.log", 2 << 20, globalExecutor());
     }
 
-    public FileLogger(final String logFolder, final String logFileName) throws IOException {
-        final File logFile = new File(logFolder, logFileName);
+    public FileLogger(String logFolder, String logFileName) throws IOException {
+        this(logFolder, logFileName, 2 << 20, globalExecutor());
+    }
 
-        if (logFile.exists() && Files.size(logFile.toPath()) > 0) {
-            archiveLogFile(logFile, logFolder);
-        } else {
+    public FileLogger(String logFolder, String logFileName, int maxSize) throws IOException {
+        this(logFolder, logFileName, maxSize, globalExecutor());
+    }
+
+    public FileLogger(String logFolder, String logFileName, int maxSize, @Nullable ExecutorService executor) throws IOException {
+        this.logPath = Path.of(logFolder, logFileName);
+        this.maxSize = maxSize;
+        this.executor = executor;
+
+        Files.createDirectories(this.logPath.getParent());
+        this.archiveIfExists();
+        this.writer = Files.newBufferedWriter(this.logPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+
+    /**
+     * Asynchronous file logger with automatic log rotation and archiving.
+     * <p>
+     * All write operations are performed in a background thread via ExecutorService.
+     * When a log file exceeds the size limit, it's automatically archived to a gzip file.
+     */
+    public void log(@NotNull Supplier<String> logEntry) {
+        if (this.failed || this.closed) return;
+        this.executor.execute(() -> {
+            if (this.failed || this.closed) return;
+
             try {
-                Files.createDirectories(Paths.get(logFolder));
-                if (!logFile.exists()) {
-                    Files.createFile(logFile.toPath());
+                final String entry = time() + logEntry.get();
+                final int entrySize = entry.getBytes(StandardCharsets.UTF_8).length + System.lineSeparator().length();
+
+                if (this.currentSize + entrySize > this.maxSize) {
+                    this.rotateLog();
                 }
-            } catch (final Exception ex) {
-                throw new RuntimeException(ex);
-            }
-        }
 
-        this.writer = Files.newBufferedWriter(logFile.toPath(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-        this.executor = getOrCreateExecutor();
-    }
-
-    private static synchronized ExecutorService getOrCreateExecutor() {
-        if (GENERAL_EXECUTOR == null) {
-            GENERAL_EXECUTOR = Executors.newSingleThreadExecutor(threadFactory -> {
-                final Thread thread = new Thread(threadFactory, "MyLib-File-Logger");
-                thread.setDaemon(true);
-                return thread;
-            });
-        }
-        return GENERAL_EXECUTOR;
-    }
-
-    public static synchronized void shutdownGlobalExecutor() {
-        if (GENERAL_EXECUTOR != null && !GENERAL_EXECUTOR.isShutdown()) {
-            GENERAL_EXECUTOR.shutdown();
-            GENERAL_EXECUTOR = null;
-        }
-    }
-
-    public void log(final Supplier<String> logEntry) {
-        executor.execute(() -> {
-            try {
-                writer.write(getTime() + logEntry.get());
-                writer.newLine();
-                writer.flush();
-            } catch (final Exception ex) {
-                throw new RuntimeException(ex);
+                this.writer.write(entry);
+                this.writer.newLine();
+                this.writer.flush();
+                this.currentSize += entrySize;
+            } catch (IOException e) {
+                // Log write failed, silently ignore
+                this.failed = true;
             }
         });
     }
 
-    private static void archiveLogFile(final File logFile, final String logFolder) {
-        getOrCreateExecutor().execute(() -> {
+    /**
+     * Closes the logger and releases resources.
+     * <p>
+     * If a custom executor was provided, it will be shut down.
+     * The global executor is not affected.
+     */
+    @Override
+    public void close() {
+        if (this.closed) return;
+        this.closed = true;
+
+        this.executor.execute(() -> {
             try {
-                final File archive = getArchiveFile(logFolder);
-
-                try (final FileInputStream inputStream = new FileInputStream(logFile);
-                     final FileOutputStream outputStream = new FileOutputStream(archive);
-                     final GZIPOutputStream gzip = new GZIPOutputStream(outputStream)) {
-                    final byte[] buffer = new byte[1024];
-                    int length;
-                    while ((length = inputStream.read(buffer)) > 0) {
-                        gzip.write(buffer, 0, length);
-                    }
-                }
-
-                Files.delete(logFile.toPath());
-                Files.createFile(logFile.toPath());
-            } catch (final Exception ex) {
-                throw new RuntimeException(ex);
+                this.writer.close();
+            } catch (IOException e) {
+                // Ignore
             }
         });
+
+        if (this.executor != globalExecutor) {
+            this.executor.shutdown();
+            try {
+                this.executor.awaitTermination(2, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                this.executor.shutdownNow();
+            }
+        }
     }
 
-    private static File getArchiveFile(final String logFolder) {
-        final String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-        int index = 1;
-        File archive;
-
-        do {
-            archive = new File(logFolder, date + "-" + index + ".log.gz");
-            index++;
-        } while (archive.exists());
-
-        return archive;
+    public static void shutdownGlobalExecutor() {
+        synchronized (FileLogger.class) {
+            if (globalExecutor != null) {
+                globalExecutor.shutdown();
+                try {
+                    globalExecutor.awaitTermination(2, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    globalExecutor.shutdownNow();
+                } finally {
+                    globalExecutor = null;
+                }
+            }
+        }
     }
 
-    private static String getTime() {
+    // ===== Utility Methods =====
+
+    private static ExecutorService globalExecutor() {
+        if (globalExecutor == null) {
+            synchronized (FileLogger.class) {
+                if (globalExecutor == null) {
+                    globalExecutor = Executors.newSingleThreadExecutor(r -> {
+                        final Thread thread = new Thread(r, "MyLib-FileLogger-Thread");
+                        thread.setDaemon(true);
+                        return thread;
+                    });
+                }
+            }
+        }
+        return globalExecutor;
+    }
+
+
+    private static String time() {
         final Calendar cal = Calendar.getInstance();
         final int year = cal.get(Calendar.YEAR);
         final int month = cal.get(Calendar.MONTH) + 1;
@@ -142,20 +180,30 @@ public class FileLogger implements AutoCloseable {
         });
     }
 
-    public void useDefaultExecutor() {
-        this.executor = getOrCreateExecutor();
-    }
+    private void archiveIfExists() throws IOException {
+        if (!Files.exists(this.logPath) && Files.size(this.logPath) > 0) return;
 
-    @Override
-    public void close() throws IOException {
-        this.writer.close();
-        if (this.executor != GENERAL_EXECUTOR && !this.executor.isShutdown()) {
-            this.executor.shutdown();
+        final String date = LocalDateTime.now().format(DATE_FORMATTER);
+        int index = 1;
+        Path archivePath;
+        do {
+            archivePath = this.logPath.getParent().resolve(date + "-" + index + ".log.gz");
+            index++;
+        } while (Files.exists(archivePath));
+
+        try (final InputStream in = Files.newInputStream(this.logPath);
+             final GZIPOutputStream gzip = new GZIPOutputStream(Files.newOutputStream(archivePath))) {
+            in.transferTo(gzip);
         }
+
+        Files.delete(this.logPath);
     }
 
-    @Deprecated(forRemoval = true)
-    public void stop() throws IOException {
-        this.close();
+    // called only from executor thread
+    private void rotateLog() throws IOException {
+        this.writer.close();
+        this.archiveIfExists();
+        this.writer = Files.newBufferedWriter(this.logPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        this.currentSize = 0;
     }
 }
