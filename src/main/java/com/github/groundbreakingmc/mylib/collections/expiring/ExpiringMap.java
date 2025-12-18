@@ -13,6 +13,13 @@ import java.util.function.Function;
 @SuppressWarnings("unused") // I don't wanna see suggestions from IDEA
 public final class ExpiringMap<K, V> {
 
+    /**
+     * Our own fork join pool for ExpiringMap cache operations.
+     * <p>
+     * By default, Caffeine uses ForkJoinPool.commonPool().
+     * Using a dedicated pool ensures that other tasks using the common pool
+     * cannot block cache operations.
+     */
     private static final ForkJoinPool LOADER_POOL = new ForkJoinPool();
 
     private final Cache<K, V> cache;

@@ -14,6 +14,13 @@ import java.util.function.Function;
 @SuppressWarnings("unused")
 public class SelfExpiringMap<K, V> {
 
+    /**
+     * Our own fork join pool for ExpiringMap cache operations.
+     * <p>
+     * By default, Caffeine uses ForkJoinPool.commonPool().
+     * Using a dedicated pool ensures that other tasks using the common pool
+     * cannot block cache operations.
+     */
     private static final ForkJoinPool LOADER_POOL = new ForkJoinPool();
 
     private final Cache<K, ExpiringValue<V>> cache;
