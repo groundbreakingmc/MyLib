@@ -37,4 +37,17 @@ public final class SoundAction<C extends ActionContext> implements Action<C> {
             player.playSound(this.sound);
         }
     }
+
+    @Override
+    public @NotNull String prefix() {
+        return "sound";
+    }
+
+    @Override
+    public @NotNull String rawValue() {
+        return this.sound.name().asString() + ";"
+                + this.sound.volume() + ";"
+                + this.sound.pitch() + ";"
+                + this.sound.source();
+    }
 }

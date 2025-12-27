@@ -27,4 +27,14 @@ public final class EffectAction<C extends ActionContext> implements Action<C> {
             PlayerUtils.addPotionEffect(player, this.effectSettings);
         }
     }
+
+    @Override
+    public @NotNull String prefix() {
+        return "effect";
+    }
+
+    @Override
+    public @NotNull String rawValue() {
+        return this.effectSettings.toString();
+    }
 }

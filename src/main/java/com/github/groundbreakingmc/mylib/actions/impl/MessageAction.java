@@ -53,6 +53,16 @@ public final class MessageAction<C extends ActionContext> implements Action<C> {
         }
     }
 
+    @Override
+    public @NotNull String prefix() {
+        return "message";
+    }
+
+    @Override
+    public @NotNull String rawValue() {
+        return this.colorizer.decolorize(this.message);
+    }
+
     private Component getReplaced(@NotNull Player player) {
         Component result = this.message;
 

@@ -35,4 +35,14 @@ public class CommandAction<C extends ActionContext> implements Action<C> {
             Bukkit.dispatchCommand(sender, command);
         }
     }
+
+    @Override
+    public @NotNull String prefix() {
+        return this.console ? "console" : "player";
+    }
+
+    @Override
+    public @NotNull String rawValue() {
+        return this.command;
+    }
 }

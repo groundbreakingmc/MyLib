@@ -65,6 +65,20 @@ public final class TitleAction<C extends ActionContext> implements Action<C> {
         player.showTitle(Title.title(replacedTitle, replacedSubtitle, this.times));
     }
 
+    @Override
+    public @NotNull String prefix() {
+        return "title";
+    }
+
+    @Override
+    public @NotNull String rawValue() {
+        return this.colorizer.decolorize(this.title) + ";"
+                + this.colorizer.decolorize(this.subtitle) + ";"
+                + this.times.fadeIn() + ";"
+                + this.times.stay() + ";"
+                + this.times.fadeOut() + ";";
+    }
+
     private Component getReplaced(@NotNull Player player, Component toReplace) {
         Component result = toReplace;
 

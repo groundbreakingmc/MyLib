@@ -16,4 +16,14 @@ public interface Action<C extends ActionContext> {
      * @param context the context required for this action
      */
     void execute(@NotNull C context);
+
+    /**
+     * Returns the prefix of this action (e.g., "message", "title").
+     */
+    @NotNull String prefix();
+
+    /**
+     * Returns the raw value without a prefix (e.g., "Hello world", "sound;1;2").
+     */
+    @NotNull String rawValue();
 }
