@@ -55,7 +55,7 @@ public final class MessageAction<C extends ActionContext> implements Action<C> {
 
     @Override
     public @NotNull String prefix() {
-        return "message";
+        return this.broadcast ? "broadcast" : "message";
     }
 
     @Override
