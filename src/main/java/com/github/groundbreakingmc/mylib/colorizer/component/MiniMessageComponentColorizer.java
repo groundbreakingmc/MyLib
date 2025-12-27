@@ -1,6 +1,6 @@
 package com.github.groundbreakingmc.mylib.colorizer.component;
 
-import com.github.groundbreakingmc.mylib.colorizer.string.AdvancedStringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.string.StringColorizer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
  * Output: Component with red "Hello " + bold green "World"
  * </pre>
  * <p>
- * The underlying string colorizer uses {@link AdvancedStringColorizer} for
+ * The underlying string colorizer uses {@link FastHexStringColorizer} for
  * cases where string output is needed.
  *
  * @author groundbreakingmc
@@ -40,10 +40,10 @@ public final class MiniMessageComponentColorizer implements ComponentColorizer {
     /**
      * Creates a new MiniMessage component colorizer.
      * <p>
-     * Initializes with {@link AdvancedStringColorizer} as the underlying string colorizer.
+     * Initializes with {@link FastHexStringColorizer} as the underlying string colorizer.
      */
     public MiniMessageComponentColorizer() {
-        this.colorizer = new AdvancedStringColorizer();
+        this.colorizer = new FastHexStringColorizer();
     }
 
     /**
@@ -70,7 +70,7 @@ public final class MiniMessageComponentColorizer implements ComponentColorizer {
     /**
      * Returns the underlying string colorizer.
      *
-     * @return the {@link AdvancedStringColorizer} instance
+     * @return the {@link FastHexStringColorizer} instance
      */
     @Override
     public @NotNull StringColorizer getStringColorizer() {

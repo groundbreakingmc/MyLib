@@ -1,6 +1,6 @@
 package com.github.groundbreakingmc.mylib.colorizer.component;
 
-import com.github.groundbreakingmc.mylib.colorizer.string.AdvancedStringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.string.StringColorizer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
  * </pre>
  * <p>
  * Supports any {@link StringColorizer} implementation, defaulting to
- * {@link AdvancedStringColorizer} which handles both standard and hex formats.
+ * {@link FastHexStringColorizer} which handles both standard and hex formats.
  *
  * @author groundbreakingmc
  * @see LegacyComponentSerializer
@@ -41,7 +41,7 @@ public final class LegacyComponentColorizer implements ComponentColorizer {
     /**
      * Creates a new vanilla component colorizer with default settings.
      * <p>
-     * Uses {@link AdvancedStringColorizer} as the string colorizer, which supports:
+     * Uses {@link FastHexStringColorizer} as the string colorizer, which supports:
      * <ul>
      *   <li>Standard color codes: {@code &a}, {@code &l}, etc.</li>
      *   <li>Full hex codes: {@code &#rrggbb}</li>
@@ -49,7 +49,7 @@ public final class LegacyComponentColorizer implements ComponentColorizer {
      * </ul>
      */
     public LegacyComponentColorizer() {
-        this(new AdvancedStringColorizer());
+        this(new FastHexStringColorizer());
     }
 
     /**
