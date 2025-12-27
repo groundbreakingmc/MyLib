@@ -106,7 +106,7 @@ public final class LegacyComponentColorizer implements ComponentColorizer {
      * Example transformation:
      * <pre>
      * Input:  Component with red "Hello " + green "World"
-     * Output: "&cHello &aWorld"
+     * Output: "&amp;cHello &amp;aWorld"
      * </pre>
      * <p>
      * Uses {@link LegacyComponentSerializer#legacyAmpersand()} to serialize

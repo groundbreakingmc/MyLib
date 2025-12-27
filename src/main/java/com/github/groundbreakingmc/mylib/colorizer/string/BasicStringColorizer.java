@@ -63,11 +63,11 @@ public final class BasicStringColorizer implements StringColorizer {
      * Example transformation:
      * <pre>
      * Input:  "§aHello §cWorld §r§lBold"
-     * Output: "&aHello &cWorld &r&lBold"
+     * Output: "&amp;aHello &amp;cWorld &amp;r&amp;lBold"
      * </pre>
      *
      * @param colorized the message with § color codes, may be null or empty
-     * @return the message with & color codes, or the original if null/empty
+     * @return the message with &amp; color codes, or the original if null/empty
      */
     @Override
     public @UnknownNullability String decolorize(@Nullable String colorized) {

@@ -77,7 +77,7 @@ public final class MiniMessageComponentColorizer implements ComponentColorizer {
      * Example transformation:
      * <pre>
      * Input:  Component with red "Hello " + bold green "World"
-     * Output: "<red>Hello <bold><green>World</bold>"
+     * Output:  "&lt;red&gt;Hello &lt;bold&gt;&lt;#00ff00&gt;World&lt;/bold&gt;"
      * </pre>
      * <p>
      * Uses {@link MiniMessage} serializer to convert the component

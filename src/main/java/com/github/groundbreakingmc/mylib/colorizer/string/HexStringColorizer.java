@@ -83,16 +83,16 @@ public final class HexStringColorizer implements StringColorizer {
     }
 
     /**
-     * Decolorizes the message by converting Minecraft color format back to &#rrggbb format.
+     * Decolorizes the message by converting Minecraft color format back to &amp;#rrggbb format.
      * <p>
      * Delegates to {@link FastHexStringDecolorizer} for conversion of:
      * <ul>
-     *   <li>Hex colors: §x§r§r§g§g§b§b → &#rrggbb</li>
-     *   <li>Standard codes: §a, §l, etc. → &a, &l, etc.</li>
+     *   <li>Hex colors: §x§r§r§g§g§b§b → &amp;#rrggbb</li>
+     *   <li>Standard codes: §a, §l, etc. → &amp;a, &amp;l, etc.</li>
      * </ul>
      *
      * @param colorized the colorized message to decolorize, may be null or empty
-     * @return the message with & and &# color codes, or the original if null/empty
+     * @return the message with &amp; and &amp;# color codes, or the original if null/empty
      */
     @Override
     public @UnknownNullability String decolorize(@Nullable String colorized) {

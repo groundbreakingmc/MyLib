@@ -57,7 +57,7 @@ public final class MiniMessageStringColorizer implements StringColorizer {
      * Example transformation:
      * <pre>
      * Input:  "§cHello §x§0§0§f§f§0§0World"
-     * Output: "<red>Hello <#00ff00>World"
+     * Output: "&lt;red&gt;Hello &lt;#00ff00&gt;World"
      * </pre>
      * <p>
      * Processing steps:

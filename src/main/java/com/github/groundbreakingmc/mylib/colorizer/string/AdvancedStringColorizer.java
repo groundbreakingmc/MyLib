@@ -123,15 +123,15 @@ public final class AdvancedStringColorizer implements StringColorizer {
      * <p>
      * Converts:
      * <ul>
-     *   <li>§x§r§r§g§g§b§b → &#rrggbb (full hex codes)</li>
-     *   <li>§a, §l, etc. → &a, &l, etc. (standard codes)</li>
+     *   <li>§x§r§r§g§g§b§b → &amp;#rrggbb (full hex codes)</li>
+     *   <li>§a, §l, etc. → &amp;a, &amp;l, etc. (standard codes)</li>
      * </ul>
      * <p>
-     * Note: Cannot distinguish between original &#rrggbb and &##rgb formats,
+     * Note: Cannot distinguish between original &amp;#rrggbb and &amp;##rgb formats,
      * always outputs full 6-digit hex format.
      *
      * @param colorized the colorized message to decolorize, may be null or empty
-     * @return the message with & color codes, or the original if null/empty
+     * @return the message with &amp; color codes, or the original if null/empty
      */
     @Override
     public @UnknownNullability String decolorize(@Nullable String colorized) {

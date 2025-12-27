@@ -3,21 +3,22 @@ package com.github.groundbreakingmc.mylib.colorizer.string;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
-import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.*;
+import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.ALT_COLOR_CHAR;
+import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.MC_COLOR_CHAR;
 
 /**
  * High-performance decolorizer that converts Minecraft's internal color format back to readable format.
  * <p>
  * This decolorizer performs the reverse operation of colorizers, converting:
  * <ul>
- *   <li>Minecraft hex format (§x§r§r§g§g§b§b) back to readable format (&#rrggbb)</li>
- *   <li>Section sign color codes (§a) back to ampersand format (&a)</li>
+ *   <li>Minecraft hex format (§x§r§r§g§g§b§b) back to readable format (&amp;#rrggbb)</li>
+ *   <li>Section sign color codes (§a) back to ampersand format (&amp;a)</li>
  * </ul>
  * <p>
  * Example transformation:
  * <pre>
  * Input:  "§x§f§f§5§5§5§5Hello §aWorld"
- * Output: "&#ff5555Hello &aWorld"
+ * Output: "&amp;#ff5555Hello &amp;aWorld"
  * </pre>
  * <p>
  * <b>Performance:</b> Uses single-pass parsing with manual character manipulation
