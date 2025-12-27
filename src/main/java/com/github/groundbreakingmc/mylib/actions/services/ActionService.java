@@ -76,7 +76,7 @@ public class ActionService<C extends ActionContext> {
     public boolean register(@NotNull ActionCreator<C> actionCreator, boolean override) {
         if (!override) {
             for (final ActionCreator<C> target : this.actions) {
-                if (target.getPrefix().equalsIgnoreCase(actionCreator.getPrefix())) {
+                if (target.prefix().equalsIgnoreCase(actionCreator.prefix())) {
                     return false;
                 }
             }
@@ -106,7 +106,7 @@ public class ActionService<C extends ActionContext> {
     @Nullable
     public Action<C> fromString(@NotNull String action) {
         for (final ActionCreator<C> target : this.actions) {
-            if (StringUtil.startsWithIgnoreCase(action, target.getPrefix())) {
+            if (StringUtil.startsWithIgnoreCase(action, target.prefix())) {
                 return target.create(action);
             }
         }
@@ -131,12 +131,12 @@ public class ActionService<C extends ActionContext> {
      * @param prefix the prefix to search for, must not be null
      * @return the matching {@link ActionCreator}, or {@code null}
      * if no creator with the given prefix is registered
-     * @see ActionCreator#getPrefix()
+     * @see ActionCreator#prefix()
      */
     @Nullable
     public ActionCreator<C> byPrefix(@NotNull String prefix) {
         for (final ActionCreator<C> target : this.actions) {
-            if (target.getPrefix().equalsIgnoreCase(prefix)) {
+            if (target.prefix().equalsIgnoreCase(prefix)) {
                 return target;
             }
         }
