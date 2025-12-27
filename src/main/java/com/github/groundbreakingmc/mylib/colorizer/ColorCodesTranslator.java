@@ -132,7 +132,6 @@ public final class ColorCodesTranslator {
                     changed++;
                     continue;
                 } else if (isColorCharacter(nextChar)) {
-                    System.out.println(nextChar + " got as color character");
                     chars[i] = MC_COLOR_CHAR;
                     chars[++i] = (char) (nextChar | 0x20);
                     continue;
@@ -145,8 +144,6 @@ public final class ColorCodesTranslator {
             // Convert initial &x to §x
             chars[startPos - 1] = MC_COLOR_CHAR;
             chars[startPos] = HEX_MARKER;
-        } else {
-            System.out.println("CHANGED - " + changed);
         }
 
         return i;
