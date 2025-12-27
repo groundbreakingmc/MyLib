@@ -43,4 +43,14 @@ public final class ActionCreator<C extends ActionContext> {
     public Action<C> create(@NotNull String action) {
         return this.factory.apply(action.substring(this.prefix.length()).trim());
     }
+
+    /**
+     * Creates action from raw value (without a prefix).
+     *
+     * @param rawValue input string, without a prefix
+     * @return the created Action
+     */
+    public Action<C> createFromRaw(@NotNull String rawValue) {
+        return this.factory.apply(rawValue);
+    }
 }
