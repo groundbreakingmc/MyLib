@@ -2,6 +2,7 @@ package com.github.groundbreakingmc.mylib.colorizer.string;
 
 import com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Advanced colorizer with support for multiple hex formats:
@@ -115,6 +116,26 @@ public final class AdvancedStringColorizer implements StringColorizer {
         this.appendRemainingColorTags(builder, isColor, isHashtag, isDoubleTag);
 
         return builder.toString();
+    }
+
+    /**
+     * Decolorizes the message by converting Minecraft color format back to advanced format.
+     * <p>
+     * Converts:
+     * <ul>
+     *   <li>§x§r§r§g§g§b§b → &#rrggbb (full hex codes)</li>
+     *   <li>§a, §l, etc. → &a, &l, etc. (standard codes)</li>
+     * </ul>
+     * <p>
+     * Note: Cannot distinguish between original &#rrggbb and &##rgb formats,
+     * always outputs full 6-digit hex format.
+     *
+     * @param colorized the colorized message to decolorize, may be null or empty
+     * @return the message with & color codes, or the original if null/empty
+     */
+    @Override
+    public @UnknownNullability String decolorize(@Nullable String colorized) {
+        return FastHexStringDecolorizer.decolorize(colorized);
     }
 
     /**

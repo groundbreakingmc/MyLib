@@ -6,6 +6,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Component colorizer that processes MiniMessage format.
@@ -65,6 +66,42 @@ public final class MiniMessageComponentColorizer implements ComponentColorizer {
         }
 
         return MiniMessage.miniMessage().deserialize(message);
+    }
+
+    /**
+     * Decolorizes the component by converting it to MiniMessage format.
+     * <p>
+     * This is the reverse operation of {@link #colorize(String)}, converting
+     * Adventure components back to MiniMessage tag format.
+     * <p>
+     * Example transformation:
+     * <pre>
+     * Input:  Component with red "Hello " + bold green "World"
+     * Output: "<red>Hello <bold><green>World</bold>"
+     * </pre>
+     * <p>
+     * Uses {@link MiniMessage} serializer to convert the component
+     * back to its string representation.
+     * <p>
+     * Special cases:
+     * <ul>
+     *   <li>If component is null, returns null</li>
+     *   <li>If component is empty, returns empty string</li>
+     * </ul>
+     *
+     * @param colorized the component to decolorize, may be null or empty
+     * @return the MiniMessage format string, or null/empty if input was null/empty
+     */
+    @Override
+    public @UnknownNullability String decolorize(@Nullable Component colorized) {
+        if (colorized == null) {
+            return null;
+        }
+        if (colorized.equals(Component.empty())) {
+            return "";
+        }
+
+        return MiniMessage.miniMessage().serialize(colorized);
     }
 
     /**

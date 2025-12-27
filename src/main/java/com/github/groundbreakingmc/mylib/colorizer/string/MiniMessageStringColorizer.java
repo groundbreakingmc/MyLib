@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Converts MiniMessage format to legacy Minecraft format.
@@ -45,5 +46,39 @@ public final class MiniMessageStringColorizer implements StringColorizer {
 
         final Component component = MiniMessage.miniMessage().deserialize(message);
         return LegacyComponentSerializer.legacySection().serialize(component);
+    }
+
+    /**
+     * Decolorizes the message by converting legacy Minecraft format to MiniMessage format.
+     * <p>
+     * This is the reverse operation of {@link #colorize(String)}, converting
+     * legacy section sign format back to MiniMessage tags.
+     * <p>
+     * Example transformation:
+     * <pre>
+     * Input:  "§cHello §x§0§0§f§f§0§0World"
+     * Output: "<red>Hello <#00ff00>World"
+     * </pre>
+     * <p>
+     * Processing steps:
+     * <ol>
+     *   <li>Deserializes the legacy format using {@link LegacyComponentSerializer}</li>
+     *   <li>Serializes the component back to MiniMessage format</li>
+     * </ol>
+     *
+     * @param colorized the message in legacy Minecraft format, may be null or empty
+     * @return the message in MiniMessage format, or the original if null/empty
+     */
+    @Override
+    public @UnknownNullability String decolorize(@Nullable String colorized) {
+        if (colorized == null) {
+            return null;
+        }
+        if (colorized.isEmpty()) {
+            return colorized;
+        }
+
+        final Component component = LegacyComponentSerializer.legacySection().deserialize(colorized);
+        return MiniMessage.miniMessage().serialize(component);
     }
 }

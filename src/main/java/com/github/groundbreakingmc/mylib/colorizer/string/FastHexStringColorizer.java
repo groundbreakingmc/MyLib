@@ -2,6 +2,7 @@ package com.github.groundbreakingmc.mylib.colorizer.string;
 
 import com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.*;
 
@@ -68,7 +69,7 @@ public class FastHexStringColorizer implements StringColorizer {
         loop:
         for (int i = 0; i < length - 1; ) {
             final char ch = chars[i];
-            if (ch == ColorCodesTranslator.ALT_COLOR_CHAR) {
+            if (ch == ALT_COLOR_CHAR) {
                 char nextChar = chars[++i];
                 if (nextChar == HEX_MARKER) {
                     if (i + 6 >= length) break;
@@ -100,5 +101,22 @@ public class FastHexStringColorizer implements StringColorizer {
 
         builder.append(chars, start, length - start);
         return builder.toString();
+    }
+
+    /**
+     * Decolorizes the message by converting Minecraft color format back to &#rrggbb format.
+     * <p>
+     * Delegates to {@link FastHexStringDecolorizer} for efficient conversion of:
+     * <ul>
+     *   <li>Hex colors: §x§r§r§g§g§b§b → &#rrggbb</li>
+     *   <li>Standard codes: §a, §l, etc. → &a, &l, etc.</li>
+     * </ul>
+     *
+     * @param colorized the colorized message to decolorize, may be null or empty
+     * @return the message with & and &# color codes, or the original if null/empty
+     */
+    @Override
+    public @UnknownNullability String decolorize(@Nullable String colorized) {
+        return FastHexStringDecolorizer.decolorize(colorized);
     }
 }

@@ -2,6 +2,7 @@ package com.github.groundbreakingmc.mylib.colorizer.string;
 
 import com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -79,6 +80,23 @@ public final class HexStringColorizer implements StringColorizer {
 
         builder.append(message, lastEnd, message.length());
         return ColorCodesTranslator.translateAlternateColorCodes(builder.toString());
+    }
+
+    /**
+     * Decolorizes the message by converting Minecraft color format back to &#rrggbb format.
+     * <p>
+     * Delegates to {@link FastHexStringDecolorizer} for conversion of:
+     * <ul>
+     *   <li>Hex colors: §x§r§r§g§g§b§b → &#rrggbb</li>
+     *   <li>Standard codes: §a, §l, etc. → &a, &l, etc.</li>
+     * </ul>
+     *
+     * @param colorized the colorized message to decolorize, may be null or empty
+     * @return the message with & and &# color codes, or the original if null/empty
+     */
+    @Override
+    public @UnknownNullability String decolorize(@Nullable String colorized) {
+        return FastHexStringDecolorizer.decolorize(colorized);
     }
 
     /**

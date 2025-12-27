@@ -2,6 +2,9 @@ package com.github.groundbreakingmc.mylib.colorizer.string;
 
 import com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
+
+import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.*;
 
 /**
  * Basic colorizer that only translates alternate color codes (&amp;) to section signs (§).
@@ -48,6 +51,45 @@ public final class BasicStringColorizer implements StringColorizer {
             return message;
         }
 
-        return ColorCodesTranslator.translateAlternateColorCodes(message);
+        return change(ALT_COLOR_CHAR, MC_COLOR_CHAR, message);
+    }
+
+    /**
+     * Decolorizes the message by converting section signs back to ampersands.
+     * <p>
+     * This is the reverse operation of {@link #colorize(String)}, converting
+     * all valid {@code §} color codes back to {@code &} format.
+     * <p>
+     * Example transformation:
+     * <pre>
+     * Input:  "§aHello §cWorld §r§lBold"
+     * Output: "&aHello &cWorld &r&lBold"
+     * </pre>
+     *
+     * @param colorized the message with § color codes, may be null or empty
+     * @return the message with & color codes, or the original if null/empty
+     */
+    @Override
+    public @UnknownNullability String decolorize(@Nullable String colorized) {
+        if (colorized == null || colorized.isEmpty()) {
+            return colorized;
+        }
+
+        return change(MC_COLOR_CHAR, ALT_COLOR_CHAR, colorized);
+    }
+
+    private static String change(char from, char to, String message) {
+        final char[] charArray = message.toCharArray();
+        for (int i = 0; i < charArray.length - 1; i++) {
+            if (charArray[i] == from) {
+                char nextChar = charArray[i + 1];
+                if (isColorCharacter(nextChar)) {
+                    charArray[i] = to;
+                    charArray[++i] = (char) (nextChar | 0x20);
+                }
+            }
+        }
+
+        return new String(charArray);
     }
 }

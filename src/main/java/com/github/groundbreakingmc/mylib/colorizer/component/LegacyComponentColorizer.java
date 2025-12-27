@@ -6,6 +6,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Component colorizer that processes legacy Minecraft color codes.
@@ -93,6 +94,44 @@ public final class LegacyComponentColorizer implements ComponentColorizer {
 
         return LegacyComponentSerializer.legacySection().deserialize(
                 this.colorizer.colorize(message)
+        );
+    }
+
+    /**
+     * Decolorizes the component by converting it back to ampersand color code format.
+     * <p>
+     * This is the reverse operation of {@link #colorize(String)}, converting
+     * Adventure components back to legacy ampersand format.
+     * <p>
+     * Example transformation:
+     * <pre>
+     * Input:  Component with red "Hello " + green "World"
+     * Output: "&cHello &aWorld"
+     * </pre>
+     * <p>
+     * Uses {@link LegacyComponentSerializer#legacyAmpersand()} to serialize
+     * the component to string format.
+     * <p>
+     * Special cases:
+     * <ul>
+     *   <li>If component is null, returns null</li>
+     *   <li>If component is empty, returns empty string</li>
+     * </ul>
+     *
+     * @param colorized the component to decolorize, may be null or empty
+     * @return the legacy ampersand format string, or null/empty if input was null/empty
+     */
+    @Override
+    public @UnknownNullability String decolorize(@Nullable Component colorized) {
+        if (colorized == null) {
+            return null;
+        }
+        if (colorized.equals(Component.empty())) {
+            return "";
+        }
+
+        return LegacyComponentSerializer.legacyAmpersand().serialize(
+                colorized
         );
     }
 
