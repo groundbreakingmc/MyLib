@@ -115,6 +115,36 @@ public class ActionService<C extends ActionContext> {
     }
 
     /**
+     * Retrieves a registered {@link ActionCreator} by its prefix.
+     * <p>
+     * The lookup is performed using case-insensitive comparison.
+     * If multiple creators theoretically shared the same prefix
+     * (which should not happen unless overriding is misused),
+     * the first matching creator is returned.
+     * <p>
+     * Example:
+     * <pre>
+     * ActionCreator&lt;PlayerContext&gt; creator =
+     *     service.getByPrefix("[message]");
+     * </pre>
+     *
+     * @param prefix the prefix to search for, must not be null
+     * @return the matching {@link ActionCreator}, or {@code null}
+     * if no creator with the given prefix is registered
+     * @see ActionCreator#getPrefix()
+     */
+    @Nullable
+    public ActionCreator<C> byPrefix(@NotNull String prefix) {
+        for (final ActionCreator<C> target : this.actions) {
+            if (target.getPrefix().equalsIgnoreCase(prefix)) {
+                return target;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Registers default action creators for common action types.
      * <p>
      * This method registers the following built-in actions:
