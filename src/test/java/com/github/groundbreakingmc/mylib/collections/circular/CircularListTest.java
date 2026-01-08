@@ -4,6 +4,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class CircularListTest {
@@ -12,367 +16,548 @@ class CircularListTest {
 
     @BeforeEach
     void setUp() {
-        list = new CircularList<>();
+        this.list = new CircularList<>();
     }
 
     @Test
     @DisplayName("Create empty list with default constructor")
-    void testDefaultConstructor() {
-        assertEquals(0, list.size());
-        assertTrue(list.isEmpty());
+    void testEmptyList() {
+        assertEquals(0, this.list.size());
+        assertTrue(this.list.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Add elements and verify with get")
+    void testAddAndGet() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        assertEquals(3, this.list.size());
+        assertEquals("A", this.list.get(0));
+        assertEquals("B", this.list.get(1));
+        assertEquals("C", this.list.get(2));
+    }
+
+    @Test
+    @DisplayName("Set element at index and return old value")
+    void testSet() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        String old = this.list.set(1, "X");
+        assertEquals("B", old);
+        assertEquals("X", this.list.get(1));
+    }
+
+    @Test
+    @DisplayName("Remove element by index")
+    void testRemove() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        String removed = this.list.remove(1);
+        assertEquals("B", removed);
+        assertEquals(2, this.list.size());
+        assertEquals("A", this.list.get(0));
+        assertEquals("C", this.list.get(1));
+    }
+
+    @Test
+    @DisplayName("Remove element by object reference")
+    void testRemoveByObject() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        assertTrue(this.list.remove("B"));
+        assertEquals(2, this.list.size());
+        assertFalse(this.list.remove("X"));
+    }
+
+    @Test
+    @DisplayName("Clear all elements from list")
+    void testClear() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        this.list.clear();
+        assertEquals(0, this.list.size());
+        assertTrue(this.list.isEmpty());
     }
 
     @Test
     @DisplayName("Create list with initial capacity")
     void testConstructorWithCapacity() {
-        CircularList<Integer> list = new CircularList<>(20);
+        CircularList<Integer> list = new CircularList<>(5);
         assertEquals(0, list.size());
-        assertTrue(list.isEmpty());
+
+        for (int i = 0; i < 10; i++) {
+            list.add(i);
+        }
+        assertEquals(10, list.size());
     }
 
     @Test
-    @DisplayName("Create list with maximum size")
-    void testConstructorWithMaxSize() {
-        CircularList<Integer> list = new CircularList<>(10, 50);
-        assertEquals(0, list.size());
+    @DisplayName("Throw exception when maxSize is invalid")
+    void testConstructorInvalidMaxSize() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            new CircularList<>(10, 0);
+        });
     }
 
     @Test
-    @DisplayName("Add element to the end")
-    void testAdd() {
-        assertTrue(list.add("first"));
-        assertEquals(1, list.size());
-        assertEquals("first", list.get(0));
+    @DisplayName("Overwrite oldest element when maxSize is reached")
+    void testCircularBehaviorBasic() {
+        CircularList<Integer> list = new CircularList<>(3, 3);
+
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        assertEquals(3, list.size());
+        assertEquals(Arrays.asList(1, 2, 3), Arrays.asList(list.toArray()));
+
+        list.add(4);
+        assertEquals(3, list.size());
+        assertEquals(Arrays.asList(2, 3, 4), Arrays.asList(list.toArray()));
+
+        list.add(5);
+        assertEquals(3, list.size());
+        assertEquals(Arrays.asList(3, 4, 5), Arrays.asList(list.toArray()));
     }
 
     @Test
-    @DisplayName("Add multiple elements")
-    void testAddMultiple() {
-        list.add("first");
-        list.add("second");
-        list.add("third");
+    @DisplayName("Handle multiple rotations in circular mode")
+    void testCircularBehaviorMultipleRotations() {
+        CircularList<Integer> list = new CircularList<>(3, 3);
+
+        for (int i = 0; i < 10; i++) {
+            list.add(i);
+        }
 
         assertEquals(3, list.size());
-        assertEquals("first", list.get(0));
-        assertEquals("second", list.get(1));
-        assertEquals("third", list.get(2));
+        assertEquals(Arrays.asList(7, 8, 9), Arrays.asList(list.toArray()));
     }
 
     @Test
-    @DisplayName("Add element at specific index")
-    void testAddAtIndex() {
-        list.add("first");
-        list.add("third");
-        list.add(1, "second");
+    @DisplayName("Support remove operations in circular mode")
+    void testCircularBehaviorWithRemove() {
+        CircularList<Integer> list = new CircularList<>(3, 5);
 
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        list.add(4);
+        list.add(5);
+
+        assertEquals(5, list.size());
+
+        list.add(6);
+        assertEquals(5, list.size());
+        assertEquals(Arrays.asList(2, 3, 4, 5, 6), Arrays.asList(list.toArray()));
+
+        list.remove(0);
+        assertEquals(4, list.size());
+        assertEquals(Arrays.asList(3, 4, 5, 6), Arrays.asList(list.toArray()));
+
+        list.add(7);
+        assertEquals(5, list.size());
+        assertEquals(Arrays.asList(3, 4, 5, 6, 7), Arrays.asList(list.toArray()));
+    }
+
+    @Test
+    @DisplayName("Insert element at specific index")
+    void testAddByIndex() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("D");
+
+        this.list.add(2, "C");
+        assertEquals(4, this.list.size());
+        assertEquals(Arrays.asList("A", "B", "C", "D"), Arrays.asList(this.list.toArray()));
+    }
+
+    @Test
+    @DisplayName("Insert element at the beginning")
+    void testAddByIndexAtBeginning() {
+        this.list.add("B");
+        this.list.add("C");
+
+        this.list.add(0, "A");
+        assertEquals(3, this.list.size());
+        assertEquals(Arrays.asList("A", "B", "C"), Arrays.asList(this.list.toArray()));
+    }
+
+    @Test
+    @DisplayName("Insert element at the end using index")
+    void testAddByIndexAtEnd() {
+        this.list.add("A");
+        this.list.add("B");
+
+        this.list.add(2, "C");
+        assertEquals(3, this.list.size());
+        assertEquals(Arrays.asList("A", "B", "C"), Arrays.asList(this.list.toArray()));
+    }
+
+    @Test
+    @DisplayName("Allow insertion at index when maxSize is reached")
+    void testAddByIndexInCircularMode() {
+        CircularList<Integer> list = new CircularList<>(3, 3);
+        list.add(1);
+        list.add(2);
+        list.add(3);
+
+        list.add(0, 0);
         assertEquals(3, list.size());
-        assertEquals("first", list.get(0));
-        assertEquals("second", list.get(1));
-        assertEquals("third", list.get(2));
-    }
+        assertEquals(Arrays.asList(0, 1, 2), Arrays.asList(list.toArray()));
 
-    @Test
-    @DisplayName("Add element at the beginning")
-    void testAddAtBeginning() {
-        list.add("second");
-        list.add("third");
-        list.add(0, "first");
-
-        assertEquals("first", list.get(0));
-        assertEquals("second", list.get(1));
-        assertEquals("third", list.get(2));
-    }
-
-    @Test
-    @DisplayName("Add element at the end using index")
-    void testAddAtEnd() {
-        list.add("first");
-        list.add("second");
-        list.add(2, "third");
-
+        list.add(1, 10);
         assertEquals(3, list.size());
-        assertEquals("third", list.get(2));
+        assertEquals(Arrays.asList(0, 10, 1), Arrays.asList(list.toArray()));
+
+        list.add(2, 99);
+        assertEquals(3, list.size());
+        assertEquals(Arrays.asList(0, 10, 99), Arrays.asList(list.toArray()));
     }
 
     @Test
-    @DisplayName("Throw exception when adding at invalid index")
-    void testAddAtInvalidIndex() {
-        list.add("first");
+    @DisplayName("Throw exception when inserting at invalid index")
+    void testAddByIndexOutOfBounds() {
+        this.list.add("A");
 
-        assertThrows(IndexOutOfBoundsException.class, () -> list.add(-1, "invalid"));
-        assertThrows(IndexOutOfBoundsException.class, () -> list.add(5, "invalid"));
+        assertThrows(IndexOutOfBoundsException.class, () -> this.list.add(-1, "X"));
+        assertThrows(IndexOutOfBoundsException.class, () -> this.list.add(5, "X"));
     }
 
     @Test
-    @DisplayName("Remove element by index")
-    void testRemoveByIndex() {
-        list.add("first");
-        list.add("second");
-        list.add("third");
-
-        String removed = list.remove(1);
-
-        assertEquals("second", removed);
-        assertEquals(2, list.size());
-        assertEquals("first", list.get(0));
-        assertEquals("third", list.get(1));
-    }
-
-    @Test
-    @DisplayName("Remove element by value")
-    void testRemoveByValue() {
-        list.add("first");
-        list.add("second");
-        list.add("third");
-
-        assertTrue(list.remove("second"));
-        assertEquals(2, list.size());
-        assertFalse(list.contains("second"));
-    }
-
-    @Test
-    @DisplayName("Remove non-existent element")
-    void testRemoveNonExistent() {
-        list.add("first");
-        assertFalse(list.remove("nonexistent"));
-        assertEquals(1, list.size());
-    }
-
-    @Test
-    @DisplayName("Remove null element")
-    void testRemoveNull() {
-        list.add("first");
-        list.add(null);
-        list.add("third");
-
-        assertTrue(list.remove(null));
-        assertEquals(2, list.size());
-        assertFalse(list.contains(null));
-    }
-
-    @Test
-    @DisplayName("Throw exception when removing at invalid index")
-    void testRemoveInvalidIndex() {
-        list.add("first");
-
-        assertThrows(IndexOutOfBoundsException.class, () -> list.remove(-1));
-        assertThrows(IndexOutOfBoundsException.class, () -> list.remove(5));
-    }
-
-    @Test
-    @DisplayName("Get element by index")
-    void testGet() {
-        list.add("first");
-        list.add("second");
-
-        assertEquals("first", list.get(0));
-        assertEquals("second", list.get(1));
-    }
-
-    @Test
-    @DisplayName("Set element at index")
-    void testSet() {
-        list.add("first");
-        list.add("second");
-
-        String old = list.set(1, "updated");
-
-        assertEquals("second", old);
-        assertEquals("updated", list.get(1));
-        assertEquals(2, list.size());
-    }
-
-    @Test
-    @DisplayName("Throw exception when getting at invalid index")
-    void testGetInvalidIndex() {
-        assertThrows(IndexOutOfBoundsException.class, () -> list.get(0));
-        assertThrows(IndexOutOfBoundsException.class, () -> list.get(-1));
-    }
-
-    @Test
-    @DisplayName("Find index of element")
+    @DisplayName("Find first occurrence of element")
     void testIndexOf() {
-        list.add("first");
-        list.add("second");
-        list.add("third");
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+        this.list.add("B");
 
-        assertTrue(list.indexOf("second") >= 0);
-        assertEquals(-1, list.indexOf("nonexistent"));
+        assertEquals(0, this.list.indexOf("A"));
+        assertEquals(1, this.list.indexOf("B"));
+        assertEquals(2, this.list.indexOf("C"));
+        assertEquals(-1, this.list.indexOf("X"));
     }
 
     @Test
-    @DisplayName("Find last index of element")
+    @DisplayName("Find last occurrence of element")
     void testLastIndexOf() {
-        list.add("first");
-        list.add("second");
-        list.add("first");
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+        this.list.add("B");
 
-        int lastIndex = list.lastIndexOf("first");
-        assertTrue(lastIndex >= 0);
+        assertEquals(0, this.list.lastIndexOf("A"));
+        assertEquals(3, this.list.lastIndexOf("B"));
+        assertEquals(2, this.list.lastIndexOf("C"));
+        assertEquals(-1, this.list.lastIndexOf("X"));
     }
 
     @Test
-    @DisplayName("Find index of null element")
-    void testIndexOfNull() {
-        list.add("first");
-        list.add(null);
-        list.add("third");
+    @DisplayName("Find null elements with indexOf and lastIndexOf")
+    void testIndexOfWithNull() {
+        this.list.add("A");
+        this.list.add(null);
+        this.list.add("C");
 
-        assertTrue(list.indexOf(null) >= 0);
+        assertEquals(1, this.list.indexOf(null));
+        assertEquals(1, this.list.lastIndexOf(null));
     }
 
     @Test
     @DisplayName("Check if list contains element")
     void testContains() {
-        list.add("first");
-        list.add("second");
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
 
-        assertTrue(list.contains("first"));
-        assertTrue(list.contains("second"));
-        assertFalse(list.contains("third"));
+        assertTrue(this.list.contains("A"));
+        assertTrue(this.list.contains("B"));
+        assertFalse(this.list.contains("X"));
     }
 
     @Test
-    @DisplayName("Check if list contains null")
+    @DisplayName("Check if list contains null element")
     void testContainsNull() {
-        list.add("first");
-        list.add(null);
+        this.list.add("A");
+        this.list.add(null);
+        this.list.add("C");
 
-        assertTrue(list.contains(null));
-    }
-
-
-    @Test
-    @DisplayName("Clear the list")
-    void testClear() {
-        list.add("first");
-        list.add("second");
-        list.add("third");
-
-        list.clear();
-
-        assertEquals(0, list.size());
-        assertTrue(list.isEmpty());
+        assertTrue(this.list.contains(null));
     }
 
     @Test
-    @DisplayName("Convert to Object array")
+    @DisplayName("Convert list to Object array")
     void testToArray() {
-        list.add("first");
-        list.add("second");
-        list.add("third");
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        Object[] array = this.list.toArray();
+        assertArrayEquals(new Object[]{"A", "B", "C"}, array);
+    }
+
+    @Test
+    @DisplayName("Convert list to typed array")
+    void testToArrayWithParameter() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        String[] array = this.list.toArray(new String[0]);
+        assertArrayEquals(new String[]{"A", "B", "C"}, array);
+
+        String[] largeArray = new String[5];
+        String[] result = this.list.toArray(largeArray);
+        assertSame(largeArray, result);
+        assertEquals("A", result[0]);
+        assertEquals("B", result[1]);
+        assertEquals("C", result[2]);
+        assertNull(result[3]);
+    }
+
+    @Test
+    @DisplayName("Convert to array after circular wrap")
+    void testToArrayAfterCircularWrap() {
+        CircularList<Integer> list = new CircularList<>(3, 3);
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        list.add(4);
+        list.add(5);
 
         Object[] array = list.toArray();
-
-        assertEquals(3, array.length);
-        assertEquals("first", array[0]);
-        assertEquals("second", array[1]);
-        assertEquals("third", array[2]);
+        assertArrayEquals(new Object[]{3, 4, 5}, array);
     }
 
     @Test
-    @DisplayName("Convert to typed array")
-    void testToArrayTyped() {
-        list.add("first");
-        list.add("second");
+    @DisplayName("Throw exception when getting element at invalid index")
+    void testGetOutOfBounds() {
+        this.list.add("A");
 
-        String[] array = list.toArray(new String[0]);
-
-        assertEquals(2, array.length);
-        assertEquals("first", array[0]);
-        assertEquals("second", array[1]);
+        assertThrows(IndexOutOfBoundsException.class, () -> this.list.get(-1));
+        assertThrows(IndexOutOfBoundsException.class, () -> this.list.get(1));
     }
 
     @Test
-    @DisplayName("Convert to larger array")
-    void testToArrayLarger() {
-        list.add("first");
-        list.add("second");
+    @DisplayName("Throw exception when setting element at invalid index")
+    void testSetOutOfBounds() {
+        this.list.add("A");
 
-        String[] array = list.toArray(new String[5]);
-
-        assertEquals(5, array.length);
-        assertEquals("first", array[0]);
-        assertEquals("second", array[1]);
-        assertNull(array[2]);
+        assertThrows(IndexOutOfBoundsException.class, () -> this.list.set(-1, "X"));
+        assertThrows(IndexOutOfBoundsException.class, () -> this.list.set(1, "X"));
     }
 
     @Test
-    @DisplayName("Exceed maximum size")
-    void testMaxSizeExceeded() {
-        CircularList<Integer> limitedList = new CircularList<>(5, 10);
+    @DisplayName("Throw exception when removing element at invalid index")
+    void testRemoveOutOfBounds() {
+        this.list.add("A");
 
-        for (int i = 0; i < 10; i++) {
-            limitedList.add(i);
-        }
-
-        assertThrows(IllegalStateException.class, () -> limitedList.add(10));
+        assertThrows(IndexOutOfBoundsException.class, () -> this.list.remove(-1));
+        assertThrows(IndexOutOfBoundsException.class, () -> this.list.remove(1));
     }
 
     @Test
-    @DisplayName("Work with empty list")
-    void testEmptyList() {
-        assertTrue(list.isEmpty());
-        assertEquals(0, list.size());
-        assertFalse(list.contains("anything"));
-        assertEquals(-1, list.indexOf("anything"));
-        assertArrayEquals(new Object[0], list.toArray());
+    @DisplayName("Throw exception when removing from empty list")
+    void testRemoveFromEmptyList() {
+        assertThrows(IndexOutOfBoundsException.class, () -> this.list.remove(0));
     }
 
     @Test
-    @DisplayName("Work with single element")
-    void testSingleElement() {
-        list.add("only");
-
-        assertEquals(1, list.size());
-        assertEquals("only", list.get(0));
-        assertTrue(list.contains("only"));
-
-        list.remove(0);
-        assertTrue(list.isEmpty());
-    }
-
-    @Test
-    @DisplayName("Perform multiple add and remove operations")
-    void testMultipleOperations() {
-        for (int i = 0; i < 100; i++) {
-            list.add("element" + i);
-        }
-
-        assertEquals(100, list.size());
-
-        for (int i = 0; i < 50; i++) {
-            list.remove(0);
-        }
-
-        assertEquals(50, list.size());
-        assertEquals("element50", list.get(0));
-    }
-
-    @Test
-    @DisplayName("Work with null values")
-    void testNullValues() {
-        list.add(null);
-        list.add("notNull");
-        list.add(null);
-
-        assertEquals(3, list.size());
-        assertNull(list.get(0));
-        assertEquals("notNull", list.get(1));
-        assertNull(list.get(2));
-    }
-
-    @Test
-    @DisplayName("Auto-grow capacity")
-    void testAutoGrowth() {
-        CircularList<Integer> smallList = new CircularList<>(2);
+    @DisplayName("Automatically grow beyond initial capacity")
+    void testGrowBeyondInitialCapacity() {
+        CircularList<Integer> list = new CircularList<>(2);
 
         for (int i = 0; i < 20; i++) {
-            smallList.add(i);
+            list.add(i);
         }
 
-        assertEquals(20, smallList.size());
-        assertEquals(0, smallList.get(0));
-        assertEquals(19, smallList.get(19));
+        assertEquals(20, list.size());
+        for (int i = 0; i < 20; i++) {
+            assertEquals(i, list.get(i));
+        }
+    }
+
+    @Test
+    @DisplayName("Perform mixed add, insert, and remove operations")
+    void testMixedOperations() {
+        CircularList<Integer> list = new CircularList<>(3, 5);
+
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        assertEquals(Arrays.asList(1, 2, 3), Arrays.asList(list.toArray()));
+
+        list.add(1, 10);
+        assertEquals(Arrays.asList(1, 10, 2, 3), Arrays.asList(list.toArray()));
+
+        list.remove(0);
+        assertEquals(Arrays.asList(10, 2, 3), Arrays.asList(list.toArray()));
+
+        list.add(4);
+        list.add(5);
+        assertEquals(Arrays.asList(10, 2, 3, 4, 5), Arrays.asList(list.toArray()));
+
+        list.add(6);
+        assertEquals(Arrays.asList(2, 3, 4, 5, 6), Arrays.asList(list.toArray()));
+    }
+
+    @Test
+    @DisplayName("Support null elements in all operations")
+    void testNullElements() {
+        this.list.add(null);
+        this.list.add("A");
+        this.list.add(null);
+        this.list.add("B");
+
+        assertEquals(4, this.list.size());
+        assertNull(this.list.get(0));
+        assertEquals("A", this.list.get(1));
+        assertNull(this.list.get(2));
+        assertEquals("B", this.list.get(3));
+
+        assertEquals(0, this.list.indexOf(null));
+        assertEquals(2, this.list.lastIndexOf(null));
+        assertTrue(this.list.remove(null));
+        assertEquals(3, this.list.size());
+    }
+
+    @Test
+    @DisplayName("Work correctly with empty list")
+    void testEmptyListOperations() {
+        assertTrue(this.list.isEmpty());
+        assertEquals(0, this.list.size());
+        assertFalse(this.list.contains("anything"));
+        assertEquals(-1, this.list.indexOf("anything"));
+        assertArrayEquals(new Object[0], this.list.toArray());
+    }
+
+    @Test
+    @DisplayName("Handle single element correctly")
+    void testSingleElement() {
+        this.list.add("only");
+
+        assertEquals(1, this.list.size());
+        assertEquals("only", this.list.get(0));
+        assertTrue(this.list.contains("only"));
+
+        this.list.remove(0);
+        assertTrue(this.list.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Perform many sequential operations")
+    void testManyOperations() {
+        for (int i = 0; i < 100; i++) {
+            this.list.add("element" + i);
+        }
+
+        assertEquals(100, this.list.size());
+
+        for (int i = 0; i < 50; i++) {
+            this.list.remove(0);
+        }
+
+        assertEquals(50, this.list.size());
+        assertEquals("element50", this.list.get(0));
+    }
+
+    @Test
+    @DisplayName("Clear list and verify it is empty")
+    void testClearEmptiesList() {
+        this.list.add("A");
+        this.list.add("B");
+
+        this.list.clear();
+        assertEquals(0, this.list.size());
+
+        this.list.clear();
+        assertEquals(0, this.list.size());
+    }
+
+    @Test
+    @DisplayName("Iterator works with foreach")
+    void testIteratorForEach() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        final StringBuilder sb = new StringBuilder();
+        for (String s : this.list) {
+            sb.append(s);
+        }
+
+        assertEquals("ABC", sb.toString());
+    }
+
+    @Test
+    @DisplayName("Iterator respects circular order after overflow")
+    void testIteratorCircularOrder() {
+        final CircularList<Integer> list = new CircularList<>(3, 3);
+
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        list.add(4);
+        list.add(5);
+
+        Iterator<Integer> it = list.iterator();
+
+        assertTrue(it.hasNext());
+        assertEquals(3, it.next());
+        assertEquals(4, it.next());
+        assertEquals(5, it.next());
+        assertFalse(it.hasNext());
+    }
+
+    @Test
+    @DisplayName("Iterator remove removes last returned element")
+    void testIteratorRemove() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        final Iterator<String> it = this.list.iterator();
+
+        assertEquals("A", it.next());
+        it.remove();
+
+        assertEquals(2, this.list.size());
+        assertEquals(Arrays.asList("B", "C"), Arrays.asList(this.list.toArray()));
+    }
+
+    @Test
+    @DisplayName("Iterator iterates elements in insertion order")
+    void testIteratorNormalOrder() {
+        this.list.add("A");
+        this.list.add("B");
+        this.list.add("C");
+
+        final Iterator<String> it = this.list.iterator();
+
+        assertTrue(it.hasNext());
+        assertEquals("A", it.next());
+        assertTrue(it.hasNext());
+        assertEquals("B", it.next());
+        assertTrue(it.hasNext());
+        assertEquals("C", it.next());
+        assertFalse(it.hasNext());
+    }
+
+    @Test
+    @DisplayName("Iterator on empty list")
+    void testIteratorEmpty() {
+        final Iterator<String> it = this.list.iterator();
+
+        assertNotNull(it);
+        assertFalse(it.hasNext());
+        assertThrows(NoSuchElementException.class, it::next);
     }
 }

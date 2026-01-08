@@ -20,8 +20,8 @@ import java.util.Arrays;
  * in the middle of the list have O(n) complexity due to element shifting.</p>
  *
  * <p>The list can optionally be created with a maximum size limit. When the
- * limit is reached, attempting to add more elements will throw an
- * {@link IllegalStateException}.</p>
+ * limit is reached, attempting to add more elements will overwrite the oldest
+ * elements in a circular fashion, maintaining a constant size.</p>
  *
  * <p><strong>Note:</strong> This implementation is not synchronized. If multiple
  * threads access a CircularList instance concurrently, and at least one thread
@@ -29,7 +29,7 @@ import java.util.Arrays;
  *
  * @param <E> the type of elements in this list
  * @author GroundbreakingMC
- * @version 1.0
+ * @version 2.0
  */
 public class CircularList<E> extends AbstractList<E> {
 
@@ -43,7 +43,7 @@ public class CircularList<E> extends AbstractList<E> {
     private E[] elements;
 
     /**
-     * The index in the elements array where the logical first element (index 0) is stored.
+     * The index in the element array where the logical first element (index 0) is stored.
      * This allows the list to wrap around the array without moving elements.
      */
     private int head;
@@ -92,11 +92,14 @@ public class CircularList<E> extends AbstractList<E> {
      *
      * @param initialCapacity the initial capacity of the list
      * @param maxSize         the maximum number of elements this list can hold
-     * @throws IllegalArgumentException if the specified initial capacity is negative
+     * @throws IllegalArgumentException if the specified initial capacity is negative,
      *                                  or if maxSize is less than or equal to 0
      */
     @SuppressWarnings("unchecked")
     public CircularList(int initialCapacity, int maxSize) {
+        if (maxSize <= 0) {
+            throw new IllegalArgumentException("maxSize must be positive");
+        }
         this.elements = (E[]) new Object[initialCapacity];
         this.head = 0;
         this.size = 0;
@@ -110,20 +113,7 @@ public class CircularList<E> extends AbstractList<E> {
 
     @Override
     public boolean contains(Object o) {
-        if (o == null) {
-            for (int i = 0; i < this.size; i++) {
-                if (this.elements[i] == null) {
-                    return true;
-                }
-            }
-        } else {
-            for (int i = 0; i < this.size; i++) {
-                if (this.elements[i].equals(o)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return indexOf(o) >= 0;
     }
 
     @Override
@@ -154,40 +144,36 @@ public class CircularList<E> extends AbstractList<E> {
 
     @Override
     public boolean add(E element) {
-        this.growIfNeed(this.size + 1);
-        int realIndex = this.realIndex(this.size);
-        this.elements[realIndex] = element;
-        this.size++;
+        if (this.size == this.maxSize) {
+            this.elements[this.head] = element;
+            this.head = (this.head + 1) % this.elements.length;
+        } else {
+            this.growIfNeed(this.size + 1);
+            this.elements[this.realIndex(this.size)] = element;
+            this.size++;
+        }
         this.modCount++;
         return true;
     }
 
     @Override
     public boolean remove(Object o) {
-        if (o == null) {
-            for (int i = 0; i < this.size; i++) {
-                if (this.elements[i] == null) {
-                    this.remove(i);
-                    return true;
-                }
-            }
-        } else {
-            for (int i = 0; i < this.size; i++) {
-                if (this.elements[i].equals(o)) {
-                    this.remove(i);
-                    return true;
-                }
-            }
+        final int index = this.indexOf(o);
+        if (index >= 0) {
+            this.remove(index);
+            return true;
         }
         return false;
     }
 
     @Override
     public void clear() {
-        Arrays.fill(this.elements, null);
-        this.head = 0;
-        this.size = 0;
-        this.modCount++;
+        if (this.size > 0) {
+            Arrays.fill(this.elements, null);
+            this.head = 0;
+            this.size = 0;
+            this.modCount++;
+        }
     }
 
     @Override
@@ -211,17 +197,25 @@ public class CircularList<E> extends AbstractList<E> {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + this.size);
         }
 
-        growIfNeed(this.size + 1);
+        if (this.size < this.maxSize) {
+            this.growIfNeed(this.size + 1);
 
-        if (index == this.size) {
-            this.elements[realIndex(this.size)] = element;
+            if (index < this.size) {
+                this.shiftRight(index, this.size - 1);
+            }
+
+            this.elements[this.realIndex(index)] = element;
+            this.size++;
         } else {
-            // Сдвигаем элементы вправо
-            shiftRight(index, this.size - 1);
-            this.elements[realIndex(index)] = element;
+            if (index == 0) {
+                this.head = (this.head - 1 + this.elements.length) % this.elements.length;
+                this.elements[this.head] = element;
+            } else {
+                this.shiftRight(index, this.size - 2);
+                this.elements[this.realIndex(index)] = element;
+            }
         }
 
-        this.size++;
         this.modCount++;
     }
 
@@ -229,13 +223,15 @@ public class CircularList<E> extends AbstractList<E> {
     public E remove(int index) {
         this.checkIndexForAccess(index);
 
-        final int realIndex = this.realIndex(index);
-        final E old = this.elements[realIndex];
+        final int realIdx = this.realIndex(index);
+        final E old = this.elements[realIdx];
 
-        shiftLeft(index + 1, this.size - 1);
+        if (index < this.size - 1) {
+            this.shiftLeft(index + 1, this.size - 1);
+        }
 
         this.size--;
-        this.elements[realIndex(this.size)] = null;
+        this.elements[this.realIndex(this.size)] = null;
         this.modCount++;
 
         return old;
@@ -245,16 +241,14 @@ public class CircularList<E> extends AbstractList<E> {
     public int indexOf(Object o) {
         if (o == null) {
             for (int i = 0; i < this.size; i++) {
-                final int realIndex = this.realIndex(i);
-                if (this.elements[realIndex] == null) {
-                    return realIndex;
+                if (this.elements[this.realIndex(i)] == null) {
+                    return i;
                 }
             }
         } else {
             for (int i = 0; i < this.size; i++) {
-                final int realIndex = this.realIndex(i);
-                if (this.elements[realIndex].equals(o)) {
-                    return realIndex;
+                if (o.equals(this.elements[this.realIndex(i)])) {
+                    return i;
                 }
             }
         }
@@ -265,16 +259,14 @@ public class CircularList<E> extends AbstractList<E> {
     public int lastIndexOf(Object o) {
         if (o == null) {
             for (int i = this.size - 1; i >= 0; i--) {
-                final int realIndex = this.realIndex(i);
-                if (this.elements[realIndex] == null) {
-                    return realIndex;
+                if (this.elements[this.realIndex(i)] == null) {
+                    return i;
                 }
             }
         } else {
             for (int i = this.size - 1; i >= 0; i--) {
-                final int realIndex = this.realIndex(i);
-                if (this.elements[realIndex].equals(o)) {
-                    return realIndex;
+                if (o.equals(this.elements[this.realIndex(i)])) {
+                    return i;
                 }
             }
         }
@@ -289,8 +281,7 @@ public class CircularList<E> extends AbstractList<E> {
      * @return the actual index in the internal array
      */
     private int realIndex(int fake) {
-        final int sum = this.head + fake;
-        return sum > this.elements.length ? sum - this.elements.length : sum;
+        return (this.head + fake) % this.elements.length;
     }
 
     /**
@@ -301,30 +292,26 @@ public class CircularList<E> extends AbstractList<E> {
      */
     private void checkIndexForAccess(int i) {
         if (i < 0 || i >= this.size) {
-            throw new IndexOutOfBoundsException("Index (" + i + ") is greater than or equal to list size (" + this.size + ")");
+            throw new IndexOutOfBoundsException("Index: " + i + ", Size: " + this.size);
         }
     }
 
     /**
-     * Grows the internal array if the specified size would exceed the current capacity.
+     * Grows the internal array if the specified size exceeds the current capacity.
      * The new capacity is typically double the current capacity, but will not exceed
      * the maximum size limit if one is set.
      *
      * @param newSize the size that needs to be accommodated
-     * @throws IllegalStateException if the new size would exceed the maximum size limit
      */
     @SuppressWarnings("unchecked")
     private void growIfNeed(int newSize) {
-        if (this.elements == EMPTY && newSize < DEFAULT_CAPACITY) {
+        if (this.elements == EMPTY && newSize <= DEFAULT_CAPACITY) {
             this.elements = (E[]) new Object[DEFAULT_CAPACITY];
             return;
         }
+
         if (newSize <= this.elements.length) {
             return;
-        }
-
-        if (newSize > this.maxSize) {
-            throw new IllegalStateException("Cannot grow beyond maxSize: " + this.maxSize);
         }
 
         int newCapacity = Math.max(this.elements.length * 2, newSize);
@@ -333,7 +320,7 @@ public class CircularList<E> extends AbstractList<E> {
         final E[] newElements = (E[]) new Object[newCapacity];
 
         for (int i = 0; i < this.size; i++) {
-            newElements[i] = this.elements[realIndex(i)];
+            newElements[i] = this.elements[this.realIndex(i)];
         }
 
         this.elements = newElements;
@@ -349,9 +336,9 @@ public class CircularList<E> extends AbstractList<E> {
      */
     private void shiftLeft(int from, int to) {
         for (int i = from; i <= to; i++) {
-            int prevRealIndex = realIndex(i - 1);
-            int currRealIndex = realIndex(i);
-            this.elements[prevRealIndex] = this.elements[currRealIndex];
+            final int prevIdx = this.realIndex(i - 1);
+            final int currIdx = this.realIndex(i);
+            this.elements[prevIdx] = this.elements[currIdx];
         }
     }
 
@@ -364,9 +351,9 @@ public class CircularList<E> extends AbstractList<E> {
      */
     private void shiftRight(int from, int to) {
         for (int i = to; i >= from; i--) {
-            int currRealIndex = realIndex(i);
-            int nextRealIndex = realIndex(i + 1);
-            this.elements[nextRealIndex] = this.elements[currRealIndex];
+            final int currIdx = this.realIndex(i);
+            final int nextIdx = this.realIndex(i + 1);
+            this.elements[nextIdx] = this.elements[currIdx];
         }
     }
 }
