@@ -141,7 +141,6 @@ public final class CommandUtils {
         return tabCompleteOfflinePlayerNames(args[args.length - 1]);
     }
 
-    @ApiStatus.Experimental
     public static List<String> tabCompleteOfflinePlayerNames(final String input) {
         final OfflinePlayer[] offlinePlayers = Bukkit.getOfflinePlayers();
         final List<String> completions = new ObjectArrayList<>(offlinePlayers.length);
@@ -153,7 +152,7 @@ public final class CommandUtils {
         // No DRY, because Bukkit#getOfflinePlayers returns an array
         for (final OfflinePlayer player : offlinePlayers) {
             final String playerName = player.getName();
-            if (check.test(playerName)) {
+            if (playerName != null && check.test(playerName)) {
                 completions.add(playerName);
             }
         }
