@@ -132,7 +132,6 @@ public final class CommandUtils {
         return completions;
     }
 
-    @ApiStatus.Experimental
     public static List<String> tabCompleteOfflinePlayerNames(final String[] args) {
         if (args.length == 0) {
             return List.of();
