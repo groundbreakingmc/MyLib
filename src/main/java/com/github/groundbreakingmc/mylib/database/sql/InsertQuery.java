@@ -1,19 +1,19 @@
-package com.github.groundbreakingmc.mylib.database;
+package com.github.groundbreakingmc.mylib.database.sql;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
 
 /**
- * Prepared DELETE query that can be executed multiple times
+ * Prepared INSERT query that can be executed multiple times
  */
-public final class DeleteQuery implements Query {
+public final class InsertQuery implements Query {
 
     private final Database database;
     private final String sql;
     private final int parameterCount;
 
-    DeleteQuery(@NotNull Database database, @NotNull String sql, int parameterCount) {
+    InsertQuery(@NotNull Database database, @NotNull String sql, int parameterCount) {
         this.database = database;
         this.sql = sql;
         this.parameterCount = parameterCount;
@@ -30,7 +30,7 @@ public final class DeleteQuery implements Query {
     }
 
     /**
-     * Execute deleting with provided parameters
+     * Execute insert with provided values
      *
      * @return number of affected rows
      */

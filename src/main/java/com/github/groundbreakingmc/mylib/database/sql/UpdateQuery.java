@@ -1,19 +1,19 @@
-package com.github.groundbreakingmc.mylib.database;
+package com.github.groundbreakingmc.mylib.database.sql;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
 
 /**
- * Prepared INSERT query that can be executed multiple times
+ * Prepared UPDATE query that can be executed multiple times
  */
-public final class InsertQuery implements Query {
+public final class UpdateQuery implements Query {
 
     private final Database database;
     private final String sql;
     private final int parameterCount;
 
-    InsertQuery(@NotNull Database database, @NotNull String sql, int parameterCount) {
+    UpdateQuery(@NotNull Database database, @NotNull String sql, int parameterCount) {
         this.database = database;
         this.sql = sql;
         this.parameterCount = parameterCount;
@@ -30,7 +30,7 @@ public final class InsertQuery implements Query {
     }
 
     /**
-     * Execute insert with provided values
+     * Execute update with provided parameters
      *
      * @return number of affected rows
      */

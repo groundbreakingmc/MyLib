@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.database;
+package com.github.groundbreakingmc.mylib.database.sql;
 
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
