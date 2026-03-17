@@ -53,6 +53,7 @@ dependencies {
     // Testing
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("it.unimi.dsi:fastutil:8.5.18")
 
     // Benchmarking
     jmh("org.openjdk.jmh:jmh-core:1.37")
