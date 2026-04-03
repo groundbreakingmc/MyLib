@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.utils.vault;
+package com.github.groundbreakingmc.mylib.vault.utils;
 
 import com.github.groundbreakingmc.mylib.utils.bukkit.BukkitProviderUtils;
 import lombok.experimental.UtilityClass;
