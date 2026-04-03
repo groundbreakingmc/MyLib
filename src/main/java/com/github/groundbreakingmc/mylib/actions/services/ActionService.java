@@ -4,7 +4,7 @@ import com.github.groundbreakingmc.mylib.actions.Action;
 import com.github.groundbreakingmc.mylib.actions.context.ActionContext;
 import com.github.groundbreakingmc.mylib.actions.factories.ActionCreator;
 import com.github.groundbreakingmc.mylib.actions.impl.*;
-import com.github.groundbreakingmc.mylib.colorizer.component.ComponentColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.ComponentColorizer;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;

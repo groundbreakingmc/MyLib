@@ -1,6 +1,6 @@
 package com.github.groundbreakingmc.mylib;
 
-import com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator;
+import com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.ArrayList;

@@ -1,6 +1,10 @@
-package com.github.groundbreakingmc.mylib.colorizer.string;
+package com.github.groundbreakingmc.mylib.colorizer;
 
 import com.github.groundbreakingmc.mylib.colorizer.Colorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.AdvancedStringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.BasicStringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.HexStringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.MiniMessageStringColorizer;
 
 /**
  * Specialized colorizer interface for string-based colorization.

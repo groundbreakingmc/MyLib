@@ -1,6 +1,5 @@
 package com.github.groundbreakingmc.mylib.colorizer;
 
-import com.github.groundbreakingmc.mylib.colorizer.component.ComponentColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.component.LegacyComponentColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.component.MiniMessageComponentColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.string.*;

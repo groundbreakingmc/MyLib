@@ -1,8 +1,8 @@
 package com.github.groundbreakingmc.mylib.config;
 
 import com.github.groundbreakingmc.mylib.colorizer.ColorizerFactory;
-import com.github.groundbreakingmc.mylib.colorizer.component.ComponentColorizer;
-import com.github.groundbreakingmc.mylib.colorizer.string.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.ComponentColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
 import com.github.groundbreakingmc.mylib.config.annotations.Config;
 import com.github.groundbreakingmc.mylib.config.annotations.ConfigSerializable;
 import com.github.groundbreakingmc.mylib.config.annotations.Section;

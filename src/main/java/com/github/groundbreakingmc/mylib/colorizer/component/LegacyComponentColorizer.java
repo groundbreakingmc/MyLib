@@ -1,7 +1,8 @@
 package com.github.groundbreakingmc.mylib.colorizer.component;
 
+import com.github.groundbreakingmc.mylib.colorizer.ComponentColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
-import com.github.groundbreakingmc.mylib.colorizer.string.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;

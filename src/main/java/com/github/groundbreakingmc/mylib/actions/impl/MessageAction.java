@@ -2,7 +2,7 @@ package com.github.groundbreakingmc.mylib.actions.impl;
 
 import com.github.groundbreakingmc.mylib.actions.Action;
 import com.github.groundbreakingmc.mylib.actions.context.ActionContext;
-import com.github.groundbreakingmc.mylib.colorizer.component.ComponentColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.ComponentColorizer;
 import com.github.groundbreakingmc.mylib.vault.utils.VaultUtils;
 import net.kyori.adventure.text.Component;
 import net.milkbowl.vault.chat.Chat;

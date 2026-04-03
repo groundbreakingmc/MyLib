@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.colorizer;
+package com.github.groundbreakingmc.mylib.colorizer.utils;
 
 import lombok.experimental.UtilityClass;
 

@@ -2,7 +2,7 @@ package com.github.groundbreakingmc.mylib.colorizer;
 
 import org.junit.jupiter.api.Test;
 
-import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.*;
+import static com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ColorCodesTranslatorTest {

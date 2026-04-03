@@ -1,5 +1,6 @@
 package com.github.groundbreakingmc.mylib.colorizer.string;
 
+import com.github.groundbreakingmc.mylib.colorizer.utils.FastHexStringDecolorizer;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

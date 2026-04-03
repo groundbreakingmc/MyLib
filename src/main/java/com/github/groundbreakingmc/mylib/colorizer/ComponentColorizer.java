@@ -1,7 +1,7 @@
-package com.github.groundbreakingmc.mylib.colorizer.component;
+package com.github.groundbreakingmc.mylib.colorizer;
 
-import com.github.groundbreakingmc.mylib.colorizer.Colorizer;
-import com.github.groundbreakingmc.mylib.colorizer.string.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.component.LegacyComponentColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.component.MiniMessageComponentColorizer;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 

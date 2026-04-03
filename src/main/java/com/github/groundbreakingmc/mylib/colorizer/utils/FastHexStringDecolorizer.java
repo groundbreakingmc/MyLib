@@ -1,10 +1,11 @@
-package com.github.groundbreakingmc.mylib.colorizer.string;
+package com.github.groundbreakingmc.mylib.colorizer.utils;
 
+import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
-import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.ALT_COLOR_CHAR;
-import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.MC_COLOR_CHAR;
+import static com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator.ALT_COLOR_CHAR;
+import static com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator.MC_COLOR_CHAR;
 
 /**
  * High-performance decolorizer that converts Minecraft's internal color format back to readable format.

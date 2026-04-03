@@ -1,9 +1,11 @@
 package com.github.groundbreakingmc.mylib.colorizer.string;
 
+import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.utils.FastHexStringDecolorizer;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
-import static com.github.groundbreakingmc.mylib.colorizer.ColorCodesTranslator.*;
+import static com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator.*;
 
 /**
  * High-performance hex colorizer using manual parsing instead of regex.
