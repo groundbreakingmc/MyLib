@@ -1,10 +1,10 @@
 package com.github.groundbreakingmc.mylib.colorizer.string;
 
-import com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator;
 import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator;
+import com.github.groundbreakingmc.mylib.colorizer.utils.ColorStrings;
 import com.github.groundbreakingmc.mylib.colorizer.utils.FastHexStringDecolorizer;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Advanced colorizer with support for multiple hex formats:
@@ -136,8 +136,18 @@ public final class AdvancedStringColorizer implements StringColorizer {
      * @return the message with &amp; color codes, or the original if null/empty
      */
     @Override
-    public @UnknownNullability String decolorize(@Nullable String colorized) {
+    public String toRaw(@Nullable String colorized) {
         return FastHexStringDecolorizer.decolorize(colorized);
+    }
+
+    @Override
+    public String stripColors(@Nullable String message) {
+        return ColorStrings.advancedStrip(message);
+    }
+
+    @Override
+    public int visualLength(@Nullable String message) {
+        return ColorStrings.advancedVisualLength(message);
     }
 
     /**

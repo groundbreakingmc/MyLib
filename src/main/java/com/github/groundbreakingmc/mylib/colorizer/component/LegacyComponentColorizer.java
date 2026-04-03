@@ -1,13 +1,13 @@
 package com.github.groundbreakingmc.mylib.colorizer.component;
 
 import com.github.groundbreakingmc.mylib.colorizer.ComponentColorizer;
-import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Component colorizer that processes legacy Minecraft color codes.
@@ -123,7 +123,7 @@ public final class LegacyComponentColorizer implements ComponentColorizer {
      * @return the legacy ampersand format string, or null/empty if input was null/empty
      */
     @Override
-    public @UnknownNullability String decolorize(@Nullable Component colorized) {
+    public String toRaw(@Nullable Component colorized) {
         if (colorized == null) {
             return null;
         }
@@ -134,6 +134,35 @@ public final class LegacyComponentColorizer implements ComponentColorizer {
         return LegacyComponentSerializer.legacyAmpersand().serialize(
                 colorized
         );
+    }
+
+    /**
+     * Strips all formatting from the component, returning plain text.
+     * <p>
+     * Uses {@link PlainTextComponentSerializer} to extract only the visible
+     * characters from the component, discarding all colors and decorations.
+     *
+     * @param colorized the component to strip; may be null
+     * @return plain text content, or {@code null} if input was {@code null}
+     */
+    @Override
+    public String stripColors(@Nullable Component colorized) {
+        if (colorized == null) {
+            return null;
+        }
+
+        return PlainTextComponentSerializer.plainText().serialize(colorized);
+    }
+
+    /**
+     * Returns the visual length of the raw message using the underlying string colorizer.
+     *
+     * @param message the raw message; may be null or empty
+     * @return the number of visible characters
+     */
+    @Override
+    public int visualLength(@Nullable String message) {
+        return this.colorizer.visualLength(message);
     }
 
     /**

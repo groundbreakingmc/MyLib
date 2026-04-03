@@ -1,9 +1,9 @@
 package com.github.groundbreakingmc.mylib.colorizer.string;
 
-import com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator;
 import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator;
+import com.github.groundbreakingmc.mylib.colorizer.utils.ColorStrings;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.UnknownNullability;
 
 import static com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator.*;
 
@@ -71,12 +71,22 @@ public final class BasicStringColorizer implements StringColorizer {
      * @return the message with &amp; color codes, or the original if null/empty
      */
     @Override
-    public @UnknownNullability String decolorize(@Nullable String colorized) {
+    public String toRaw(@Nullable String colorized) {
         if (colorized == null || colorized.isEmpty()) {
             return colorized;
         }
 
         return change(MC_COLOR_CHAR, ALT_COLOR_CHAR, colorized);
+    }
+
+    @Override
+    public String stripColors(@Nullable String message) {
+        return ColorStrings.basicStrip(message);
+    }
+
+    @Override
+    public int visualLength(@Nullable String message) {
+        return ColorStrings.basicVisualLength(message);
     }
 
     private static String change(char from, char to, String message) {

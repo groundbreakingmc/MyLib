@@ -1,10 +1,10 @@
 package com.github.groundbreakingmc.mylib.colorizer.string;
 
-import com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator;
 import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator;
+import com.github.groundbreakingmc.mylib.colorizer.utils.ColorStrings;
 import com.github.groundbreakingmc.mylib.colorizer.utils.FastHexStringDecolorizer;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.UnknownNullability;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,7 +32,9 @@ import java.util.regex.Pattern;
  * @author groundbreakingmc
  * @see ColorCodesTranslator#translateAlternateColorCodes(String)
  * @since 1.0.0
+ * @deprecated use {@link FastHexStringColorizer}
  */
+@Deprecated
 public final class HexStringColorizer implements StringColorizer {
 
     /**
@@ -97,8 +99,18 @@ public final class HexStringColorizer implements StringColorizer {
      * @return the message with &amp; and &amp;# color codes, or the original if null/empty
      */
     @Override
-    public @UnknownNullability String decolorize(@Nullable String colorized) {
+    public String toRaw(@Nullable String colorized) {
         return FastHexStringDecolorizer.decolorize(colorized);
+    }
+
+    @Override
+    public String stripColors(@Nullable String message) {
+        return ColorStrings.hexStrip(message);
+    }
+
+    @Override
+    public int visualLength(@Nullable String message) {
+        return ColorStrings.hexVisualLength(message);
     }
 
     /**

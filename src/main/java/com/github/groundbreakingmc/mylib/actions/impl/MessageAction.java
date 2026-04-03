@@ -60,7 +60,7 @@ public final class MessageAction<C extends ActionContext> implements Action<C> {
 
     @Override
     public @NotNull String rawValue() {
-        return this.colorizer.decolorize(this.message);
+        return this.colorizer.toRaw(this.message);
     }
 
     private Component getReplaced(@NotNull Player player) {

@@ -1,7 +1,7 @@
 package com.github.groundbreakingmc.mylib.colorizer;
 
+import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Base interface for text colorization.
@@ -32,25 +32,60 @@ public interface Colorizer<R> {
     R colorize(@Nullable String message);
 
     /**
-     * Removes all color codes and formatting from the colorized result,
-     * returning plain text.
+     * Returns the raw representation of the colorized result, reflecting
+     * how the text looked before colorization was applied.
      * <p>
-     * This method reverses the effects of {@link #colorize(String)} by stripping
-     * all color codes, formatting codes, and other decorations from the result,
-     * leaving only the raw text content.
+     * This preserves all original symbols such as {@code &}-based codes,
+     * MiniMessage tags, or other custom formatting sequences.
      * <p>
-     * Common use cases include:
-     * <ul>
-     *   <li>Extracting plain text for logging or storage</li>
-     *   <li>Comparing text content without formatting</li>
-     *   <li>Calculating the actual length of displayed text</li>
-     *   <li>Converting formatted content back to raw input</li>
-     * </ul>
+     * Example for {@link FastHexStringColorizer}:
+     * <pre>
+     * toRaw(colorize("&amp;#ff5555Hello &amp;aWorld")) == "&amp;#ff5555Hello &amp;aWorld"
+     * </pre>
      *
-     * @param colorized the colorized result to strip. Can be null or empty
-     * @return the plain text without any color codes or formatting,
-     * or null/empty if input was null/empty
+     * @param colorized the colorized result; may be null
+     * @return the raw, pre-colorized representation, or null if input was null
      */
-    @UnknownNullability
-    String decolorize(@Nullable R colorized);
+    String toRaw(@Nullable R colorized);
+
+    /**
+     * Returns the given message as plain text, with all color codes,
+     * formatting codes, and other non-visible elements removed.
+     * <p>
+     * Useful for logging, text comparison, or calculating visible lengths
+     * without any formatting.
+     * <p>
+     * Example for {@link FastHexStringColorizer}:
+     * <pre>
+     * stripColors("&amp;#ff5555Hello &amp;aWorld") == "Hello World"
+     * </pre>
+     *
+     * @param message the message to strip; may be null
+     * @return plain text with all formatting removed, or null if input was null
+     */
+    String stripColors(@Nullable R message);
+
+    /**
+     * Returns the number of visible characters in the given message.
+     * <p>
+     * Visible characters are defined as characters that are not part of any
+     * color codes, formatting sequences, or other non-text elements supported
+     * by the implementation.
+     * <p>
+     * The calculation is performed on the <b>raw input</b> (e.g. containing
+     * {@code &}-based codes or MiniMessage tags), not on a pre-colorized result.
+     * <p>
+     * Typically equivalent to {@code stripColors(message).length()},
+     * but may be optimized to avoid intermediate allocations.
+     * <p>
+     * Example for {@link FastHexStringColorizer}:
+     * <pre>
+     * visualLength("&amp;#ff5555Hello &amp;aWorld") == 11
+     * </pre>
+     *
+     * @param message the raw message; may be null or empty
+     * @return the number of visible (non-formatting) characters,
+     * or {@code 0} if the input is null or empty
+     */
+    int visualLength(@Nullable String message);
 }

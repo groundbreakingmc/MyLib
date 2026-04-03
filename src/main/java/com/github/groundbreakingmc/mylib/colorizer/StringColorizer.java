@@ -1,9 +1,8 @@
 package com.github.groundbreakingmc.mylib.colorizer;
 
-import com.github.groundbreakingmc.mylib.colorizer.Colorizer;
 import com.github.groundbreakingmc.mylib.colorizer.string.AdvancedStringColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.string.BasicStringColorizer;
-import com.github.groundbreakingmc.mylib.colorizer.string.HexStringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.string.MiniMessageStringColorizer;
 
 /**
@@ -15,10 +14,10 @@ import com.github.groundbreakingmc.mylib.colorizer.string.MiniMessageStringColor
  * <p>
  * Common implementations include:
  * <ul>
- *   <li>{@link HexStringColorizer} - Hex code conversion</li>
- *   <li>{@link AdvancedStringColorizer} - Advanced hex formats</li>
- *   <li>{@link BasicStringColorizer} - Basic color code translation</li>
- *   <li>{@link MiniMessageStringColorizer} - MiniMessage to legacy conversion</li>
+ *   <li>{@link BasicStringColorizer} – legacy color codes (e.g. {@code &a}, {@code &l})</li>
+ *   <li>{@link FastHexStringColorizer} – legacy + hex format (e.g. {@code &#rrggbb})</li>
+ *   <li>{@link AdvancedStringColorizer} – legacy + short hex format (e.g. {@code &##rgb})</li>
+ *   <li>{@link MiniMessageStringColorizer} – MiniMessage tags (e.g. {@code <red>}, {@code <bold>})</li>
  * </ul>
  *
  * @author groundbreakingmc

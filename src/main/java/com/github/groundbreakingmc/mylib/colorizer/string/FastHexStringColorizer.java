@@ -1,9 +1,9 @@
 package com.github.groundbreakingmc.mylib.colorizer.string;
 
 import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.utils.ColorStrings;
 import com.github.groundbreakingmc.mylib.colorizer.utils.FastHexStringDecolorizer;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.UnknownNullability;
 
 import static com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTranslator.*;
 
@@ -30,8 +30,7 @@ import static com.github.groundbreakingmc.mylib.colorizer.utils.ColorCodesTransl
  * </ul>
  *
  * @author groundbreakingmc
- * @see HexStringColorizer
- * @since 2.0.0
+ * @since 1.0.0
  */
 public class FastHexStringColorizer implements StringColorizer {
 
@@ -117,7 +116,17 @@ public class FastHexStringColorizer implements StringColorizer {
      * @return the message with &amp; and &amp;# color codes, or the original if null/empty
      */
     @Override
-    public @UnknownNullability String decolorize(@Nullable String colorized) {
+    public String toRaw(@Nullable String colorized) {
         return FastHexStringDecolorizer.decolorize(colorized);
+    }
+
+    @Override
+    public String stripColors(@Nullable String message) {
+        return ColorStrings.hexStrip(message);
+    }
+
+    @Override
+    public int visualLength(@Nullable String message) {
+        return ColorStrings.hexVisualLength(message);
     }
 }

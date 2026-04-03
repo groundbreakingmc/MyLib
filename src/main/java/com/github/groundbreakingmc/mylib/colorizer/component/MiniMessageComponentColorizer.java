@@ -1,13 +1,13 @@
 package com.github.groundbreakingmc.mylib.colorizer.component;
 
 import com.github.groundbreakingmc.mylib.colorizer.ComponentColorizer;
-import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
 import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.string.FastHexStringColorizer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Component colorizer that processes MiniMessage format.
@@ -94,7 +94,7 @@ public final class MiniMessageComponentColorizer implements ComponentColorizer {
      * @return the MiniMessage format string, or null/empty if input was null/empty
      */
     @Override
-    public @UnknownNullability String decolorize(@Nullable Component colorized) {
+    public String toRaw(@Nullable Component colorized) {
         if (colorized == null) {
             return null;
         }
@@ -103,6 +103,20 @@ public final class MiniMessageComponentColorizer implements ComponentColorizer {
         }
 
         return MiniMessage.miniMessage().serialize(colorized);
+    }
+
+    @Override
+    public String stripColors(@Nullable Component colorized) {
+        if (colorized == null) {
+            return null;
+        }
+
+        return PlainTextComponentSerializer.plainText().serialize(colorized);
+    }
+
+    @Override
+    public int visualLength(@Nullable String message) {
+        return this.colorizer.visualLength(message);
     }
 
     /**

@@ -72,8 +72,8 @@ public final class TitleAction<C extends ActionContext> implements Action<C> {
 
     @Override
     public @NotNull String rawValue() {
-        return this.colorizer.decolorize(this.title) + ";"
-                + this.colorizer.decolorize(this.subtitle) + ";"
+        return this.colorizer.toRaw(this.title) + ";"
+                + this.colorizer.toRaw(this.subtitle) + ";"
                 + this.times.fadeIn() + ";"
                 + this.times.stay() + ";"
                 + this.times.fadeOut() + ";";

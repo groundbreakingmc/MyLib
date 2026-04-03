@@ -1,11 +1,11 @@
 package com.github.groundbreakingmc.mylib.colorizer.string;
 
 import com.github.groundbreakingmc.mylib.colorizer.StringColorizer;
+import com.github.groundbreakingmc.mylib.colorizer.utils.ColorStrings;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Converts MiniMessage format to legacy Minecraft format.
@@ -71,7 +71,7 @@ public final class MiniMessageStringColorizer implements StringColorizer {
      * @return the message in MiniMessage format, or the original if null/empty
      */
     @Override
-    public @UnknownNullability String decolorize(@Nullable String colorized) {
+    public String toRaw(@Nullable String colorized) {
         if (colorized == null) {
             return null;
         }
@@ -81,5 +81,15 @@ public final class MiniMessageStringColorizer implements StringColorizer {
 
         final Component component = LegacyComponentSerializer.legacySection().deserialize(colorized);
         return MiniMessage.miniMessage().serialize(component);
+    }
+
+    @Override
+    public String stripColors(@Nullable String message) {
+        return ColorStrings.miniMessageStrip(message);
+    }
+
+    @Override
+    public int visualLength(@Nullable String message) {
+        return ColorStrings.miniMessageVisualLength(message);
     }
 }
