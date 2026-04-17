@@ -10,6 +10,9 @@ import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -112,6 +115,25 @@ public class ActionService<C extends ActionContext> {
         }
 
         return null;
+    }
+
+    /**
+     * Parses a collection of action strings and returns a list of Action instances.
+     * Strings that do not match any registered prefix are silently skipped.
+     *
+     * @param rawActions the collection of raw action strings
+     * @return an immutable list of parsed actions (never null, may be empty)
+     */
+    @NotNull
+    public List<Action<C>> parseAll(@NotNull Collection<String> rawActions) {
+        final List<Action<C>> result = new ArrayList<>(rawActions.size());
+        for (final String raw : rawActions) {
+            final Action<C> action = this.fromString(raw);
+            if (action != null) {
+                result.add(action);
+            }
+        }
+        return List.copyOf(result);
     }
 
     /**
