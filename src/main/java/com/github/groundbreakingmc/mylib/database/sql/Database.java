@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Advanced database wrapper with support for connection pooling (HikariCP) and simple JDBC.
+ * Advanced database wrapper with HikariCP connection pooling and a fluent query-builder API.
  *
  * <p>Create an instance via the fluent {@link Builder}:
  * <pre>{@code
@@ -46,7 +46,7 @@ public class Database implements AutoCloseable {
     }
 
     // -------------------------------------------------------------------------
-    // Factory helpers (kept for quick one-liners)
+    // Quick factory helpers
     // -------------------------------------------------------------------------
 
     /**
@@ -56,16 +56,10 @@ public class Database implements AutoCloseable {
         return new Builder();
     }
 
-    /**
-     * Quick SQLite setup without connection pooling.
-     */
     public static Database sqlite(@NotNull String filePath) {
         return builder().sqlite(filePath).build();
     }
 
-    /**
-     * Quick SQLite setup from a {@link File} without connection pooling.
-     */
     public static Database sqlite(@NotNull File file) {
         return builder().sqlite(file).build();
     }
@@ -75,11 +69,7 @@ public class Database implements AutoCloseable {
      */
     public static Database mysql(@NotNull String host, @NotNull String database,
                                  @NotNull String username, @NotNull String password) {
-        return builder()
-                .mysql(host, database)
-                .credentials(username, password)
-                .useSimpleConnection()
-                .build();
+        return builder().mysql(host, database).credentials(username, password).useSimpleConnection().build();
     }
 
     /**
@@ -87,11 +77,7 @@ public class Database implements AutoCloseable {
      */
     public static Database postgresql(@NotNull String host, @NotNull String database,
                                       @NotNull String username, @NotNull String password) {
-        return builder()
-                .postgresql(host, database)
-                .credentials(username, password)
-                .useSimpleConnection()
-                .build();
+        return builder().postgresql(host, database).credentials(username, password).useSimpleConnection().build();
     }
 
     // -------------------------------------------------------------------------
@@ -107,11 +93,13 @@ public class Database implements AutoCloseable {
     }
 
     // -------------------------------------------------------------------------
-    // Core execution methods
+    // Core execution
     // -------------------------------------------------------------------------
 
     /**
-     * Execute a query that modifies data (INSERT, UPDATE, DELETE).
+     * Execute a DML statement (INSERT / UPDATE / DELETE).
+     *
+     * @return number of affected rows
      */
     public int executeUpdate(@NotNull String query, @NotNull Object... params) throws SQLException {
         try (final Connection conn = this.connection()) {
@@ -120,7 +108,7 @@ public class Database implements AutoCloseable {
     }
 
     /**
-     * Execute a query that modifies data using an existing connection.
+     * Execute a DML statement on an existing connection (useful inside transactions).
      */
     public int executeUpdate(@NotNull Connection connection, @NotNull String query,
                              @NotNull Object... params) throws SQLException {
@@ -139,8 +127,41 @@ public class Database implements AutoCloseable {
     }
 
     /**
-     * Execute a SELECT query and map all results.
+     * Execute the same DML statement for multiple parameter sets in a single batch.
+     *
+     * <p>All rows are committed atomically. This is significantly faster than
+     * calling {@link #executeUpdate} in a loop when inserting or updating many rows.
+     *
+     * @param sql       Parameterised SQL (use {@code ?} placeholders).
+     * @param paramSets One {@code Object[]} per row; each array must match the
+     *                  placeholder count in {@code sql}.
+     * @return Array of update counts, one per row (see {@link Statement#executeBatch()}).
      */
+    public int[] executeBatch(@NotNull String sql, @NotNull List<Object[]> paramSets) throws SQLException {
+        if (paramSets.isEmpty()) return new int[0];
+        try (final Connection conn = this.connection()) {
+            conn.setAutoCommit(false);
+            try (final PreparedStatement stmt = conn.prepareStatement(sql)) {
+                for (final Object[] params : paramSets) {
+                    this.setParameters(stmt, params);
+                    stmt.addBatch();
+                }
+                final int[] results = stmt.executeBatch();
+                conn.commit();
+                return results;
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Query execution
+    // -------------------------------------------------------------------------
+
     public <T> List<T> query(@NotNull String query, @NotNull ResultSetMapper<T> mapper,
                              @NotNull Object... params) throws SQLException {
         try (final Connection conn = this.connection()) {
@@ -157,9 +178,7 @@ public class Database implements AutoCloseable {
             this.setParameters(stmt, params);
             try (final ResultSet rs = stmt.executeQuery()) {
                 final List<T> results = new ArrayList<>();
-                while (rs.next()) {
-                    results.add(mapper.map(rs));
-                }
+                while (rs.next()) results.add(mapper.map(rs));
                 return results;
             }
         }
@@ -210,8 +229,13 @@ public class Database implements AutoCloseable {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Transactions
+    // -------------------------------------------------------------------------
+
     /**
      * Execute multiple statements inside a single transaction.
+     * Rolls back automatically on any exception.
      */
     public void transaction(@NotNull TransactionCallback callback) throws SQLException {
         try (final Connection conn = connection()) {
@@ -228,9 +252,10 @@ public class Database implements AutoCloseable {
         }
     }
 
-    /**
-     * Execute one or more DDL / CREATE TABLE statements.
-     */
+    // -------------------------------------------------------------------------
+    // DDL
+    // -------------------------------------------------------------------------
+
     public void createTables(@NotNull String... queries) throws SQLException {
         try (final Connection conn = connection();
              final Statement stmt = conn.createStatement()) {
@@ -241,7 +266,7 @@ public class Database implements AutoCloseable {
     }
 
     /**
-     * Obtain a connection from the pool (or create a new simple connection).
+     * Obtain a raw connection from the pool (caller is responsible for closing).
      */
     public Connection connection() throws SQLException {
         return this.connectionProvider.connection();
@@ -251,30 +276,18 @@ public class Database implements AutoCloseable {
     // Query builder entry points
     // -------------------------------------------------------------------------
 
-    /**
-     * Start building a SELECT query.
-     */
     public SelectBuilder.SelectStep select(@NotNull String... columns) {
         return SelectBuilder.select(this, columns);
     }
 
-    /**
-     * Start building an INSERT query.
-     */
     public InsertBuilder.InsertStep insert(@NotNull String table) {
         return InsertBuilder.insert(this, table);
     }
 
-    /**
-     * Start building an UPDATE query.
-     */
     public UpdateBuilder.UpdateStep update(@NotNull String table) {
         return UpdateBuilder.update(this, table);
     }
 
-    /**
-     * Start building a DELETE query.
-     */
     public DeleteBuilder.DeleteStep delete(@NotNull String table) {
         return DeleteBuilder.delete(this, table);
     }
@@ -295,7 +308,7 @@ public class Database implements AutoCloseable {
     }
 
     // -------------------------------------------------------------------------
-    // Public functional interfaces
+    // Functional interfaces
     // -------------------------------------------------------------------------
 
     /**
@@ -547,34 +560,22 @@ public class Database implements AutoCloseable {
         public Database build() {
             if (this.jdbcUrl == null || this.jdbcUrl.isEmpty()) {
                 throw new IllegalStateException(
-                        "JDBC URL must be specified — use one of the convenience methods " +
-                                "(sqlite, mysql, postgresql, …) or call jdbcUrl(String) directly.");
+                        "JDBC URL must be specified — use sqlite(), mysql(), postgresql(), etc.");
             }
-
             final ConnectionProvider provider = this.usePooling
-                    ? HikariConnectionProvider.create(
-                    this.jdbcUrl, this.username, this.password,
+                    ? HikariConnectionProvider.create(this.jdbcUrl, this.username, this.password,
                     this.minIdle, this.maxPoolSize,
                     this.connectionTimeout, this.idleTimeout, this.maxLifetime)
                     : new SimpleConnectionProvider(this.jdbcUrl, this.username, this.password);
-
             return new Database(provider, this.databaseType);
         }
 
-        // -- Private helpers ---------------------------------------------------
-
-        private static String buildNetworkUrl(@NotNull String scheme,
-                                              @NotNull String host, int port,
+        private static String buildNetworkUrl(@NotNull String scheme, @NotNull String host, int port,
                                               @NotNull String database, @Nullable String params) {
             final StringBuilder url = new StringBuilder(scheme)
-                    .append("://").append(host)
-                    .append(":").append(port)
-                    .append("/").append(database);
-
+                    .append("://").append(host).append(":").append(port).append("/").append(database);
             if (params != null && !params.isEmpty()) {
-                if (!params.startsWith("?")) {
-                    url.append("?");
-                }
+                if (!params.startsWith("?")) url.append("?");
                 url.append(params);
             }
             return url.toString();
@@ -582,7 +583,7 @@ public class Database implements AutoCloseable {
     }
 
     // -------------------------------------------------------------------------
-    // Connection providers (internal)
+    // Connection providers
     // -------------------------------------------------------------------------
 
     private interface ConnectionProvider {
@@ -603,10 +604,9 @@ public class Database implements AutoCloseable {
 
         @Override
         public Connection connection() throws SQLException {
-            if (this.username != null && this.password != null) {
-                return DriverManager.getConnection(this.jdbcUrl, this.username, this.password);
-            }
-            return DriverManager.getConnection(this.jdbcUrl);
+            return (this.username != null)
+                    ? DriverManager.getConnection(this.jdbcUrl, this.username, this.password)
+                    : DriverManager.getConnection(this.jdbcUrl);
         }
 
         @Override
@@ -641,9 +641,8 @@ public class Database implements AutoCloseable {
                 config.setMaxLifetime(maxLifetime);
                 return new HikariConnectionProvider(new HikariDataSource(config));
             } catch (Throwable th) {
-                throw new RuntimeException(
-                        "Failed to initialise HikariCP. Make sure it is on the runtime classpath.", th
-                );
+                throw new RuntimeException("Failed to initialise HikariCP. " +
+                        "Make sure it is on the runtime classpath.", th);
             }
         }
 
@@ -655,9 +654,7 @@ public class Database implements AutoCloseable {
         @Override
         public void close() {
             try {
-                if (!this.dataSource.isClosed()) {
-                    this.dataSource.close();
-                }
+                if (!this.dataSource.isClosed()) this.dataSource.close();
             } catch (Exception ignored) {
             }
         }

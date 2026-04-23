@@ -5,33 +5,42 @@ import org.jetbrains.annotations.NotNull;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
- * Type-safe SELECT query builder using Step Builder Pattern.
- * Each step only exposes methods that are valid at that point in the query construction.
+ * Type-safe SELECT query builder using the Step Builder Pattern.
+ *
+ * <p>Convenience additions over the basic API:
+ * <ul>
+ *   <li>{@link WhereStep#whereIn(String, Collection)} / {@link ConditionStep#andIn(String, Collection)}</li>
+ *   <li>{@link WhereStep#whereNull(String)} / {@link WhereStep#whereNotNull(String)}</li>
+ * </ul>
  */
 @SuppressWarnings("unused")
 public class SelectBuilder {
 
-    /**
-     * Start building a SELECT query
-     */
     public static SelectStep select(@NotNull Database database, @NotNull String... columns) {
         return new Builder(database, columns);
     }
 
+    // -------------------------------------------------------------------------
+    // Step interfaces
+    // -------------------------------------------------------------------------
+
     /**
-     * Step 1: Must specify FROM clause
+     * Step 1: Must specify FROM clause.
      */
     public interface SelectStep {
+
         FromStep from(@NotNull String table);
     }
 
     /**
-     * Step 2: Can add JOINs, WHERE, or execute
+     * Step 2: Optional JOINs, then WHERE / ORDER / LIMIT / execute.
      */
     public interface FromStep extends WhereStep, ExecuteStep {
+
         FromStep innerJoin(@NotNull String table, @NotNull String condition);
 
         FromStep leftJoin(@NotNull String table, @NotNull String condition);
@@ -40,40 +49,57 @@ public class SelectBuilder {
     }
 
     /**
-     * Step 3: Can add WHERE conditions or skip to GROUP BY/ORDER BY/LIMIT
+     * Step 3: Optional WHERE.
      */
     public interface WhereStep extends GroupByStep {
+
         ConditionStep where(@NotNull String condition, @NotNull Object... params);
+
+        ConditionStep whereIn(@NotNull String column, @NotNull Collection<?> values);
+
+        ConditionStep whereNull(@NotNull String column);
+
+        ConditionStep whereNotNull(@NotNull String column);
     }
 
     /**
-     * Step 4: After WHERE, can add AND/OR or continue to GROUP BY/ORDER BY/LIMIT
+     * Step 4: After WHERE — additional conditions or continue.
      */
     public interface ConditionStep extends GroupByStep {
+
         ConditionStep and(@NotNull String condition, @NotNull Object... params);
+
+        ConditionStep andIn(@NotNull String column, @NotNull Collection<?> values);
+
+        ConditionStep andNull(@NotNull String column);
+
+        ConditionStep andNotNull(@NotNull String column);
 
         ConditionStep or(@NotNull String condition, @NotNull Object... params);
     }
 
     /**
-     * Step 5: Can add GROUP BY or skip to ORDER BY/LIMIT
+     * Step 5: Optional GROUP BY.
      */
     public interface GroupByStep extends OrderByStep {
+
         HavingStep groupBy(@NotNull String... columns);
     }
 
     /**
-     * Step 6: After GROUP BY, can add HAVING or continue to ORDER BY/LIMIT
+     * Step 6: Optional HAVING.
      */
     public interface HavingStep extends OrderByStep {
+
         OrderByStep having(@NotNull String condition);
     }
 
     /**
-     * Step 7: Can add ORDER BY or skip to LIMIT
+     * Step 7: Optional ORDER BY.
      */
     public interface OrderByStep extends LimitStep {
-        LimitStep orderBy(@NotNull String orderBy);
+
+        LimitStep orderBy(@NotNull String expression);
 
         LimitStep asc(@NotNull String column);
 
@@ -81,26 +107,26 @@ public class SelectBuilder {
     }
 
     /**
-     * Step 8: Can add LIMIT and/or OFFSET
+     * Step 8: Optional LIMIT.
      */
     public interface LimitStep extends ExecuteStep {
+
         OffsetStep limit(int limit);
     }
 
     /**
-     * Step 9: After LIMIT, can add OFFSET
+     * Step 9: Optional OFFSET.
      */
     public interface OffsetStep extends ExecuteStep {
+
         ExecuteStep offset(int offset);
     }
 
     /**
-     * Final step: Execute the query or prepare it for reuse
+     * Final step: execute or prepare.
      */
     public interface ExecuteStep {
-        /**
-         * Execute immediately and return all results
-         */
+
         <T> List<T> fetch(@NotNull Database.ResultSetMapper<T> mapper) throws SQLException;
 
         /**
@@ -129,9 +155,10 @@ public class SelectBuilder {
         SelectQuery prepare();
     }
 
-    /**
-     * Internal builder implementation
-     */
+    // -------------------------------------------------------------------------
+    // Internal builder
+    // -------------------------------------------------------------------------
+
     private static class Builder implements SelectStep, FromStep, ConditionStep,
             HavingStep, OffsetStep {
 
@@ -151,6 +178,8 @@ public class SelectBuilder {
             this.database = database;
             this.columns = columns.length == 0 ? new String[]{"*"} : columns;
         }
+
+        // -- FROM / JOIN -------------------------------------------------------
 
         @Override
         public FromStep from(@NotNull String table) {
@@ -176,10 +205,29 @@ public class SelectBuilder {
             return this;
         }
 
+        // -- WHERE / AND / OR --------------------------------------------------
+
         @Override
         public ConditionStep where(@NotNull String condition, @NotNull Object... params) {
             this.conditions.add(condition);
             this.parameters.addAll(Arrays.asList(params));
+            return this;
+        }
+
+        @Override
+        public ConditionStep whereIn(@NotNull String column, @NotNull Collection<?> values) {
+            return addIn(column, values);
+        }
+
+        @Override
+        public ConditionStep whereNull(@NotNull String column) {
+            this.conditions.add(column + " IS NULL");
+            return this;
+        }
+
+        @Override
+        public ConditionStep whereNotNull(@NotNull String column) {
+            this.conditions.add(column + " IS NOT NULL");
             return this;
         }
 
@@ -191,14 +239,48 @@ public class SelectBuilder {
         }
 
         @Override
-        public ConditionStep or(@NotNull String condition, @NotNull Object... params) {
-            if (!this.conditions.isEmpty()) {
-                final String lastCondition = this.conditions.remove(this.conditions.size() - 1);
-                this.conditions.add("(" + lastCondition + " OR " + condition + ")");
-                this.parameters.addAll(Arrays.asList(params));
-            }
+        public ConditionStep andIn(@NotNull String column, @NotNull Collection<?> values) {
+            return addIn(column, values);
+        }
+
+        @Override
+        public ConditionStep andNull(@NotNull String column) {
+            this.conditions.add(column + " IS NULL");
             return this;
         }
+
+        @Override
+        public ConditionStep andNotNull(@NotNull String column) {
+            this.conditions.add(column + " IS NOT NULL");
+            return this;
+        }
+
+        @Override
+        public ConditionStep or(@NotNull String condition, @NotNull Object... params) {
+            if (!this.conditions.isEmpty()) {
+                final String last = this.conditions.remove(this.conditions.size() - 1);
+                this.conditions.add("(" + last + " OR " + condition + ")");
+            } else {
+                this.conditions.add(condition);
+            }
+            this.parameters.addAll(Arrays.asList(params));
+            return this;
+        }
+
+        private ConditionStep addIn(@NotNull String column, @NotNull Collection<?> values) {
+            if (values.isEmpty()) {
+                // IN () is invalid SQL — produce a condition that never matches
+                this.conditions.add("1=0");
+                return this;
+            }
+            final String placeholders = "?, ".repeat(values.size());
+            this.conditions.add(column + " IN ("
+                    + placeholders.substring(0, placeholders.length() - 2) + ")");
+            this.parameters.addAll(values);
+            return this;
+        }
+
+        // -- GROUP BY / HAVING -------------------------------------------------
 
         @Override
         public HavingStep groupBy(@NotNull String... columns) {
@@ -212,9 +294,11 @@ public class SelectBuilder {
             return this;
         }
 
+        // -- ORDER BY ----------------------------------------------------------
+
         @Override
-        public LimitStep orderBy(@NotNull String orderBy) {
-            this.orderBy = orderBy;
+        public LimitStep orderBy(@NotNull String expression) {
+            this.orderBy = expression;
             return this;
         }
 
@@ -230,6 +314,8 @@ public class SelectBuilder {
             return this;
         }
 
+        // -- LIMIT / OFFSET ----------------------------------------------------
+
         @Override
         public OffsetStep limit(int limit) {
             this.limit = limit;
@@ -242,42 +328,30 @@ public class SelectBuilder {
             return this;
         }
 
+        // -- Build -------------------------------------------------------------
+
         @Override
         public String buildQuery() {
-            final StringBuilder query = new StringBuilder("SELECT ");
-            query.append(String.join(", ", this.columns));
-            query.append(" FROM ").append(this.table);
+            final StringBuilder q = new StringBuilder("SELECT ");
+            q.append(String.join(", ", this.columns));
+            q.append(" FROM ").append(this.table);
 
             for (final String join : this.joins) {
-                query.append(" ").append(join);
+                q.append(' ').append(join);
             }
-
             if (!this.conditions.isEmpty()) {
-                query.append(" WHERE ").append(String.join(" AND ", this.conditions));
+                q.append(" WHERE ").append(String.join(" AND ", this.conditions));
             }
+            if (this.groupBy != null) q.append(" GROUP BY ").append(this.groupBy);
+            if (this.having != null) q.append(" HAVING ").append(this.having);
+            if (this.orderBy != null) q.append(" ORDER BY ").append(this.orderBy);
+            if (this.limit != null) q.append(" LIMIT ").append(this.limit);
+            if (this.offset != null) q.append(" OFFSET ").append(this.offset);
 
-            if (this.groupBy != null) {
-                query.append(" GROUP BY ").append(this.groupBy);
-            }
-
-            if (this.having != null) {
-                query.append(" HAVING ").append(this.having);
-            }
-
-            if (this.orderBy != null) {
-                query.append(" ORDER BY ").append(this.orderBy);
-            }
-
-            if (this.limit != null) {
-                query.append(" LIMIT ").append(this.limit);
-            }
-
-            if (this.offset != null) {
-                query.append(" OFFSET ").append(this.offset);
-            }
-
-            return query.toString();
+            return q.toString();
         }
+
+        // -- Execute -----------------------------------------------------------
 
         @Override
         public <T> List<T> fetch(@NotNull Database.ResultSetMapper<T> mapper) throws SQLException {
@@ -296,13 +370,12 @@ public class SelectBuilder {
 
         @Override
         public long count() throws SQLException {
-            final Builder countBuilder = new Builder(this.database, "COUNT(*)");
-            countBuilder.table = this.table;
-            countBuilder.conditions.addAll(this.conditions);
-            countBuilder.parameters.addAll(this.parameters);
-            countBuilder.joins.addAll(this.joins);
-
-            final Long result = countBuilder.fetchFirst(rs -> rs.getLong(1));
+            final Builder counter = new Builder(this.database, "COUNT(*)");
+            counter.table = this.table;
+            counter.conditions.addAll(this.conditions);
+            counter.parameters.addAll(this.parameters);
+            counter.joins.addAll(this.joins);
+            final Long result = counter.fetchFirst(rs -> rs.getLong(1));
             return result != null ? result : 0L;
         }
 
