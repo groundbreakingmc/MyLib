@@ -18,7 +18,8 @@ repositories {
 
 dependencies {
     // Minecraft
-    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("net.md-5:bungeecord-api:1.21-R0.3")
 
     // Plugins
@@ -43,6 +44,7 @@ dependencies {
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.2")
     compileOnly("com.google.guava:guava:33.4.8-jre")
     compileOnly("it.unimi.dsi:fastutil:8.5.16")
+    testImplementation("it.unimi.dsi:fastutil:8.5.18")
     compileOnly("com.zaxxer:HikariCP:7.0.0")
     compileOnly("com.typesafe:config:1.4.3")
 
@@ -52,9 +54,11 @@ dependencies {
     compileOnly("org.jetbrains:annotations:26.0.1")
 
     // Testing
-    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation(platform("org.junit:junit-bom:6.0.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-    testImplementation("it.unimi.dsi:fastutil:8.5.18")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.mockito:mockito-core:5.23.0")
+    testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.110.0")
 
     // Benchmarking
     jmh("org.openjdk.jmh:jmh-core:1.37")
