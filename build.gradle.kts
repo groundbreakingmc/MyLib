@@ -39,6 +39,7 @@ dependencies {
 
     // Utilities
     compileOnly("org.spongepowered:configurate-yaml:4.2.0")
+    compileOnly("org.spongepowered:configurate-hocon:4.2.0")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.2")
     compileOnly("com.google.guava:guava:33.4.8-jre")
     compileOnly("it.unimi.dsi:fastutil:8.5.16")
