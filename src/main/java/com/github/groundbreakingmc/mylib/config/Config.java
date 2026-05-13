@@ -3,6 +3,13 @@ package com.github.groundbreakingmc.mylib.config;
 import com.github.groundbreakingmc.mylib.config.exception.ConfigMissingPathException;
 import com.github.groundbreakingmc.mylib.config.exception.SerializerNotFoundException;
 import com.github.groundbreakingmc.mylib.config.source.ConfigSource;
+import com.github.groundbreakingmc.mylib.config.source.MapSource;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -112,6 +119,82 @@ public class Config {
         return value != null ? value : def;
     }
 
+    // ── String list ───────────────────────────────────────────────────────────
+
+    public List<String> findStrList(String path) {
+        return toStrList(this.findList(path));
+    }
+
+    public List<String> strListOr(String path, List<String> def) {
+        final List<?> raw = this.source.list(path);
+        return raw != null ? toStrList(raw) : def;
+    }
+
+    private static List<String> toStrList(List<?> raw) {
+        final List<String> result = new ArrayList<>(raw.size());
+        for (final Object e : raw) {
+            if (e != null) result.add(e.toString());
+        }
+        return result;
+    }
+
+    // ── Int list (fastutil) ───────────────────────────────────────────────────
+
+    public IntList findIntList(String path) {
+        return toIntList(this.findList(path));
+    }
+
+    public IntList intListOr(String path, IntList def) {
+        final List<?> raw = this.source.list(path);
+        return raw != null ? toIntList(raw) : def;
+    }
+
+    private static IntList toIntList(List<?> raw) {
+        final IntList result = new IntArrayList(raw.size());
+        for (final Object e : raw) {
+            if (e instanceof Number n) result.add(n.intValue());
+        }
+        return result;
+    }
+
+    // ── Long list (fastutil) ──────────────────────────────────────────────────
+
+    public LongList findLongList(String path) {
+        return toLongList(this.findList(path));
+    }
+
+    public LongList longListOr(String path, LongList def) {
+        final List<?> raw = this.source.list(path);
+        return raw != null ? toLongList(raw) : def;
+    }
+
+    private static LongList toLongList(List<?> raw) {
+        final LongList result = new LongArrayList(raw.size());
+        for (final Object e : raw) {
+            if (e instanceof Number n) result.add(n.longValue());
+        }
+        return result;
+    }
+
+    // ── Double list (fastutil) ────────────────────────────────────────────────
+
+    public DoubleList findDoubleList(String path) {
+        return toDoubleList(this.findList(path));
+    }
+
+    public DoubleList doubleListOr(String path, DoubleList def) {
+        final List<?> raw = this.source.list(path);
+        return raw != null ? toDoubleList(raw) : def;
+    }
+
+    private static DoubleList toDoubleList(List<?> raw) {
+        final DoubleList result = new DoubleArrayList(raw.size());
+        for (final Object e : raw) {
+            if (e instanceof Number n) result.add(n.doubleValue());
+        }
+        return result;
+    }
+
     // ── Map ──────────────────────────────────────────────────────────────────
 
     public Map<?, ?> findMap(String path) {
@@ -136,6 +219,28 @@ public class Config {
     public Config sectionOr(String path, Config def) {
         final ConfigSource section = this.source.section(path);
         return section != null ? this.wrap(section) : def;
+    }
+
+    // ── Section list ──────────────────────────────────────────────────────────
+
+    public List<Config> findSectionList(String path) {
+        return toSectionList(this.findList(path));
+    }
+
+    public List<Config> sectionListOr(String path, List<Config> def) {
+        final List<?> raw = this.source.list(path);
+        return raw != null ? toSectionList(raw) : def;
+    }
+
+    private List<Config> toSectionList(List<?> raw) {
+        final List<Config> result = new ArrayList<>(raw.size());
+        for (final Object e : raw) {
+            if (e instanceof Map<?, ?> map) {
+                @SuppressWarnings("unchecked") final Config section = this.wrap(new MapSource((Map<String, ?>) map));
+                result.add(section);
+            }
+        }
+        return result;
     }
 
     /**
