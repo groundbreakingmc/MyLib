@@ -1,8 +1,8 @@
 package com.github.groundbreakingmc.mylib.utils.fakeplugin;
 
 import com.destroystokyo.paper.utils.PaperPluginLogger;
-import com.github.groundbreakingmc.mylib.utils.server.version.ServerVersion;
-import com.github.groundbreakingmc.mylib.utils.server.version.ServerVersionUtils;
+import com.github.groundbreakingmc.mylib.server.version.ServerVersion;
+import com.github.groundbreakingmc.mylib.server.version.ServerVersionUtils;
 import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;

@@ -1,7 +1,8 @@
-package com.github.groundbreakingmc.mylib.utils.server;
+package com.github.groundbreakingmc.mylib.nms;
 
-import com.github.groundbreakingmc.mylib.utils.server.version.ServerVersion;
-import com.github.groundbreakingmc.mylib.utils.server.version.ServerVersionUtils;
+import com.github.groundbreakingmc.mylib.server.ServerInfo;
+import com.github.groundbreakingmc.mylib.server.version.ServerVersion;
+import com.github.groundbreakingmc.mylib.server.version.ServerVersionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
