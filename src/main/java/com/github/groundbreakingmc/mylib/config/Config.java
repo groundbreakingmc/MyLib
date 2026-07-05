@@ -1,5 +1,7 @@
 package com.github.groundbreakingmc.mylib.config;
 
+import com.github.groundbreakingmc.mylib.config.annotation.ConfigField;
+import com.github.groundbreakingmc.mylib.config.annotation.ConfigSection;
 import com.github.groundbreakingmc.mylib.config.exception.ConfigMissingPathException;
 import com.github.groundbreakingmc.mylib.config.exception.SerializerNotFoundException;
 import com.github.groundbreakingmc.mylib.config.source.ConfigSource;
@@ -324,5 +326,25 @@ public class Config {
             if (value != null) result.add(value);
         }
         return result;
+    }
+
+    // ── Record mapping ────────────────────────────────────────────────────────
+
+    /**
+     * Maps this config (or section) to an instance of the given record type.
+     *
+     * <p>The target type must be a record whose components are annotated with
+     * {@link ConfigField} or {@link ConfigSection}.
+     * Nested records are mapped recursively.
+     *
+     * <p>Lists must declare a concrete element type, for example
+     * {@code List<String>} or {@code List<WarpPoint>}.
+     *
+     * @throws IllegalArgumentException    if the record structure is invalid
+     * @throws ConfigMissingPathException  if a required config value is missing
+     * @throws SerializerNotFoundException if no serializer is registered for a custom type
+     */
+    public <T> T as(Class<T> type) {
+        return ConfigMapper.map(this, type);
     }
 }
