@@ -31,68 +31,69 @@ public class CommandRuntimeUtils {
     private final Map<String, Command> KNOWN_COMMANDS;
 
     /**
-     * Registers a command with executor only.
-     *
-     * @param plugin          plugin instance
-     * @param command         command name
-     * @param commandExecutor command executor
-     */
-    public void register(@NotNull Plugin plugin, @NotNull String command, @NotNull CommandExecutor commandExecutor) {
-        register(plugin, command, null, commandExecutor, null);
-    }
-
-    /**
-     * Registers a command with tab executor.
+     * Registers a command with a tab executor (handles both execution and tab completion).
      *
      * @param plugin      plugin instance
      * @param command     command name
-     * @param tabExecutor tab executor (handles both execution and tab completion)
+     * @param tabExecutor tab executor
      */
-    public void register(@NotNull Plugin plugin, @NotNull String command, @NotNull TabExecutor tabExecutor) {
+    public void register(@NotNull Plugin plugin,
+                         @NotNull String command,
+                         @NotNull TabExecutor tabExecutor) {
         register(plugin, command, null, tabExecutor, tabExecutor);
     }
 
     /**
-     * Registers a command with aliases and executor.
-     *
-     * @param plugin          plugin instance
-     * @param command         command name
-     * @param aliases         command aliases
-     * @param commandExecutor command executor
-     */
-    public void register(@NotNull Plugin plugin, @NotNull String command, @NotNull List<String> aliases, @NotNull CommandExecutor commandExecutor) {
-        register(plugin, command, aliases, commandExecutor, null);
-    }
-
-    /**
-     * Registers a command with aliases and tab executor.
+     * Registers a command with a tab executor (handles both execution and tab completion).
+     * The first element of {@code aliases} is used as the command name,
+     * the remaining elements are registered as aliases.
      *
      * @param plugin      plugin instance
-     * @param command     command name
-     * @param aliases     command aliases
+     * @param aliases     list where the first element is the command name and the rest are aliases
      * @param tabExecutor tab executor
      */
-    public void register(@NotNull Plugin plugin, @NotNull String command, @NotNull List<String> aliases, @NotNull TabExecutor tabExecutor) {
-        register(plugin, command, aliases, tabExecutor, tabExecutor);
+    public void register(@NotNull Plugin plugin,
+                         @NotNull List<String> aliases,
+                         @NotNull TabExecutor tabExecutor) {
+        register(plugin, aliases, tabExecutor, tabExecutor);
     }
 
     /**
-     * Registers a command with separate executor and tab completer.
+     * Registers a command with executor and optional tab completer.
      *
      * @param plugin          plugin instance
      * @param command         command name
      * @param commandExecutor command executor
-     * @param tabCompleter    tab completer
+     * @param tabCompleter    tab completer (nullable)
      */
     public void register(@NotNull Plugin plugin,
                          @NotNull String command,
                          @NotNull CommandExecutor commandExecutor,
-                         @NotNull TabCompleter tabCompleter) {
+                         @Nullable TabCompleter tabCompleter) {
         register(plugin, command, null, commandExecutor, tabCompleter);
     }
 
     /**
-     * Registers a command with full configuration.
+     * Registers a command with executor and optional tab completer.
+     * The first element of {@code aliases} is used as the command name,
+     * the remaining elements are registered as aliases.
+     *
+     * @param plugin          plugin instance
+     * @param aliases         list where the first element is the command name and the rest are aliases
+     * @param commandExecutor command executor
+     * @param tabCompleter    tab completer (nullable)
+     */
+    public void register(@NotNull Plugin plugin,
+                         @NotNull List<String> aliases,
+                         @NotNull CommandExecutor commandExecutor,
+                         @Nullable TabCompleter tabCompleter) {
+        final String command = aliases.get(0);
+        final List<String> rest = aliases.size() > 1 ? aliases.subList(1, aliases.size()) : null;
+        register(plugin, command, rest, commandExecutor, tabCompleter);
+    }
+
+    /**
+     * Core registration logic shared by all public {@code register} overloads.
      *
      * @param plugin          plugin instance
      * @param command         command name
@@ -100,11 +101,11 @@ public class CommandRuntimeUtils {
      * @param commandExecutor command executor
      * @param tabCompleter    tab completer (nullable)
      */
-    public void register(@NotNull Plugin plugin,
-                         @NotNull String command,
-                         @Nullable List<String> aliases,
-                         @NotNull CommandExecutor commandExecutor,
-                         @Nullable TabCompleter tabCompleter) {
+    private void register(@NotNull Plugin plugin,
+                          @NotNull String command,
+                          @Nullable List<String> aliases,
+                          @NotNull CommandExecutor commandExecutor,
+                          @Nullable TabCompleter tabCompleter) {
         final PluginCommand pluginCommand = createCommand(plugin, command);
         pluginCommand.setExecutor(commandExecutor);
         if (tabCompleter != null) {
