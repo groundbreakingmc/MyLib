@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.utils.command;
+package com.github.groundbreakingmc.mylib.command;
 
 import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;

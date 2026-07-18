@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.utils.command;
+package com.github.groundbreakingmc.mylib.command;
 
 import com.github.groundbreakingmc.mylib.vanish.VisibleChecker;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
