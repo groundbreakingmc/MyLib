@@ -26,8 +26,9 @@ import java.util.concurrent.CompletionStage;
  * The first line is {@code version->jarUrl}; remaining nonblank lines are the changelog.
  * The URL is optional for notifications. Any different version string is an update.
  *
- * <p>Keep one instance for startup checks and update commands. Network operations use
- * the Paper/Folia asynchronous scheduler; completion callbacks may run asynchronously.
+ * <p>Keep one instance for startup checks and update commands. Each network operation runs
+ * on its own virtual thread instead of a server scheduler, so the checker works the same on
+ * Spigot, Paper and Folia; completion callbacks may run on that thread.
  */
 public final class UpdatesChecker {
 
@@ -138,8 +139,9 @@ public final class UpdatesChecker {
         this.checking = check;
         this.autoUpdating = autoUpdate;
         try {
-            Bukkit.getAsyncScheduler().runNow(this.plugin,
-                    task -> this.runOperation(check, autoUpdate, future));
+            Thread.ofVirtual()
+                    .name(this.plugin.getName() + "-UpdatesChecker")
+                    .start(() -> this.runOperation(check, autoUpdate, future));
         } catch (final RuntimeException ex) {
             if (check) this.lastCheck = Status.FAILED;
             this.fail(future, ex, "schedule");
@@ -190,7 +192,8 @@ public final class UpdatesChecker {
                 changes = reader.lines().filter(line -> !line.isBlank()).toList();
             }
 
-            final String currentVersion = this.plugin.getPluginMeta().getVersion();
+            @SuppressWarnings("deprecation") // getPluginMeta() exists only on Paper
+            final String currentVersion = this.plugin.getDescription().getVersion();
             if (currentVersion.equals(availableVersion)) {
                 this.downloadLink = null;
                 return Status.NO_UPDATE;
