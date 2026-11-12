@@ -46,6 +46,19 @@ public final class ServerInfo {
     }
 
     /**
+     * Checks whether the complete Folia scheduler API is available.
+     *
+     * <p>This also returns {@code true} on Paper versions that provide these schedulers.
+     * The result is cached independently of the detected server type; no server classes
+     * are initialized and no running server instance is required.
+     *
+     * @return whether global, region, asynchronous and entity schedulers are available
+     */
+    public static boolean hasFoliaScheduler() {
+        return SchedulerSupport.AVAILABLE;
+    }
+
+    /**
      * Checks whether the server is a proxy (Velocity, BungeeCord, Waterfall, NullCordX).
      *
      * @return {@code true} if the server is a proxy
@@ -84,10 +97,14 @@ public final class ServerInfo {
 
     private static boolean classExists(String className) {
         try {
-            Class.forName(className);
+            Class.forName(className, false, ServerInfo.class.getClassLoader());
             return true;
-        } catch (ClassNotFoundException ignored) {
+        } catch (ClassNotFoundException | LinkageError ignored) {
             return false;
         }
+    }
+
+    private static final class SchedulerSupport {
+        private static final boolean AVAILABLE = classExists("io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler");
     }
 }
