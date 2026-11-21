@@ -1,13 +1,9 @@
 plugins {
     id("mylib.module")
     id("mylib.jmh")
-    alias(libs.plugins.plugin.yml.bukkit)
 }
 
 description = "A lightweight and extensible Java library tailored for Minecraft plugin development"
-
-// The plugin jar below takes the classes of mylib-kv, so that project is configured first.
-evaluationDependsOn(":mylib-kv")
 
 repositories {
     maven("https://repo.papermc.io/repository/maven-public/")
@@ -72,49 +68,4 @@ tasks {
     javadoc {
         (options as StandardJavadocDocletOptions).links("https://jd.papermc.io/paper/1.21/")
     }
-
-    register("buildPlugin") {
-        group = "build"
-        description = "Build plugin with bukkit.yml generation"
-        dependsOn("build")
-    }
-
-    named("generateBukkitPluginDescription") {
-        onlyIf { gradle.startParameter.taskNames.contains("buildPlugin") }
-    }
-
-    jar {
-        // The standalone plugin carries the key-value store itself; libraries get it as a dependency.
-        if (gradle.startParameter.taskNames.contains("buildPlugin")) {
-            from(project(":mylib-kv").the<SourceSetContainer>()["main"].output)
-        }
-    }
-}
-
-bukkit {
-    main = "com.github.groundbreakingmc.mylib.MyLib"
-    apiVersion = "1.13"
-
-    name = "MyLib"
-    description = "A lightweight and extensible Java library tailored for Minecraft plugin development"
-    website = "https://github.com/groundbreakingmc/MyLib"
-
-    author = "GroundbreakingMC"
-    contributors = listOf("OverwriteMC")
-
-    softDepend = listOf(
-            "WorldGuard",
-            "LuckPerms",
-            "Vault",
-            "UltimateVanish",
-            "SuperVanish",
-            "PremiumVanish"
-    )
-
-    libraries = listOf(
-            "com.github.ben-manes.caffeine:caffeine:3.2.2",
-            "org.spongepowered:configurate-yaml:4.2.0",
-            "com.zaxxer:HikariCP:7.0.0",
-            "com.typesafe:config:1.4.3"
-    )
 }
