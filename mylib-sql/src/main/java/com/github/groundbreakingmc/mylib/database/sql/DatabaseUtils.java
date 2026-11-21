@@ -6,10 +6,9 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Utility helpers for database configuration.
  *
- * <p><b>Note:</b> JDBC URL construction has been moved into {@link Database.Builder}
- * ({@code Database.builder().mysql(…).credentials(…).build()}) and no longer lives here.
- * This class now only exposes {@link MySQLParams} — a fluent builder for MySQL/MariaDB
- * query-string parameters.
+ * <p>Exposes {@link MySQLParams} — a fluent builder for MySQL/MariaDB query-string parameters.
+ * JDBC URLs are built by {@link Database.Builder}
+ * ({@code Database.builder().mysql(…).credentials(…).build()}).
  */
 @SuppressWarnings("unused")
 @UtilityClass
