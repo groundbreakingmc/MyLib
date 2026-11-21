@@ -55,7 +55,7 @@ public final class MyLib extends JavaPlugin {
 
     @Override
     public PluginCommand getCommand(@NotNull String name) {
-        throw new UnsupportedOperationException("JavaPlugin#getCommand is not supported! If you want to get the command use com.github.groundbreakingmc.mylib.utils.command.CommandRuntimeUtils#register instead!");
+        throw new UnsupportedOperationException("JavaPlugin#getCommand is not supported! If you want to get the command use com.github.groundbreakingmc.mylib.command.CommandRuntimeUtils#register instead!");
     }
 
     static {
