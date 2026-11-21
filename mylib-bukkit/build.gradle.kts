@@ -17,6 +17,7 @@ dependencies {
     api(project(":mylib-eventbus"))
     api(project(":mylib-sql"))
     api(project(":mylib-kv"))
+    api(project(":mylib-colorizer"))
 
     // Minecraft
     compileOnly(libs.paper.api)
@@ -36,7 +37,6 @@ dependencies {
     compileOnly(libs.authlib)
 
     // Adventure
-    compileOnly(libs.adventure.text.minimessage)
     compileOnly(libs.adventure.text.logger.slf4j)
 
     // Utilities

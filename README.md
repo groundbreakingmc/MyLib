@@ -114,6 +114,7 @@ for example to a Velocity plugin:
 | `mylib-eventbus`  | Synchronous event bus with priorities (`EventBus`)                     |
 | `mylib-sql`       | SQL database with HikariCP and query builders (`Database`)             |
 | `mylib-kv`        | Disk-backed key-value store (`KVRepository`)                           |
+| `mylib-colorizer` | String and Adventure component colorizers (`ColorizerFactory`)         |
 
 ```kotlin
 implementation("com.github.groundbreakingmc.MyLib:mylib-kv:VERSION")
