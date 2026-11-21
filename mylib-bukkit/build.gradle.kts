@@ -1,15 +1,15 @@
 plugins {
-    `java-library`
-    `maven-publish`
-    id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
-    id("me.champeau.jmh") version "0.7.3"
+    id("mylib.module")
+    id("mylib.jmh")
+    alias(libs.plugins.plugin.yml.bukkit)
 }
+
+description = "A lightweight and extensible Java library tailored for Minecraft plugin development"
 
 // The plugin jar below takes the classes of mylib-kv, so that project is configured first.
 evaluationDependsOn(":mylib-kv")
 
 repositories {
-    mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://maven.enginehub.org/repo/")
     maven("https://repo.extendedclip.com/releases/")
@@ -21,105 +21,56 @@ dependencies {
     api(project(":mylib-kv"))
 
     // Minecraft
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("net.md-5:bungeecord-api:1.21-R0.3")
+    compileOnly(libs.paper.api)
+    testImplementation(libs.paper.api)
+    compileOnly(libs.bungeecord.api)
 
     // Plugins
-    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
-    compileOnly("net.luckperms:api:5.4")
-    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.5") {
+    compileOnly(libs.vault.api)
+    compileOnly(libs.luckperms.api)
+    compileOnly(libs.worldguard.bukkit) {
         exclude(group = "org.spigotmc", module = "spigot-api")
     }
-    compileOnly("com.github.LeonMangler:SuperVanish:6.2.19")
-    compileOnly("me.clip:placeholderapi:2.11.6")
+    compileOnly(libs.supervanish)
+    compileOnly(libs.placeholderapi)
 
     // Mojang
-    compileOnly("com.mojang:authlib:3.13.56")
+    compileOnly(libs.authlib)
 
     // Adventure
-    compileOnly("net.kyori:adventure-text-minimessage:4.24.0")
-    compileOnly("net.kyori:adventure-text-logger-slf4j:4.24.0")
+    compileOnly(libs.adventure.text.minimessage)
+    compileOnly(libs.adventure.text.logger.slf4j)
 
     // Utilities
-    compileOnly("org.spongepowered:configurate-yaml:4.2.0")
-    compileOnly("org.spongepowered:configurate-hocon:4.2.0")
-    compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.2")
-    compileOnly("com.google.guava:guava:33.4.8-jre")
-    compileOnly("it.unimi.dsi:fastutil:8.5.16")
-    testImplementation("it.unimi.dsi:fastutil:8.5.18")
-    compileOnly("com.zaxxer:HikariCP:7.0.0")
-    compileOnly("com.typesafe:config:1.4.3")
+    compileOnly(libs.configurate.yaml)
+    compileOnly(libs.configurate.hocon)
+    compileOnly(libs.caffeine)
+    compileOnly(libs.guava)
+    compileOnly(libs.fastutil)
+    testImplementation(libs.fastutil)
+    compileOnly(libs.hikaricp)
+    compileOnly(libs.typesafe.config)
 
     // Annotations
-    compileOnly("org.projectlombok:lombok:1.18.38")
-    annotationProcessor("org.projectlombok:lombok:1.18.38")
-    compileOnly("org.jetbrains:annotations:26.0.1")
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
+    compileOnly(libs.jetbrains.annotations)
 
     // Testing
-    testImplementation(platform("org.junit:junit-bom:6.0.3"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("org.mockito:mockito-core:5.23.0")
-    testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.110.0")
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockbukkit)
 
     // Benchmarking
-    jmh("org.openjdk.jmh:jmh-core:1.37")
-    jmhAnnotationProcessor("org.openjdk.jmh:jmh-generator-annprocess:1.37")
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-    withSourcesJar()
-    withJavadocJar()
+    jmh(libs.jmh.core)
+    jmhAnnotationProcessor(libs.jmh.generator.annprocess)
 }
 
 tasks {
-    compileJava {
-        options.encoding = "UTF-8"
-    }
-
     javadoc {
-        options.encoding = "UTF-8"
-        (options as StandardJavadocDocletOptions).apply {
-            links("https://docs.oracle.com/en/java/javase/21/docs/api/")
-            links("https://jd.papermc.io/paper/1.21/")
-        }
-    }
-
-    test {
-        useJUnitPlatform()
-    }
-
-    register<JavaExec>("jmhWarmup") {
-        group = "benchmark"
-        description = "Run JMH benchmarks with warmup"
-        classpath = files(jmhJar, configurations.jmh)
-        mainClass = "org.openjdk.jmh.Main"
-        args(
-                "-bm", "AverageTime",
-                "-tu", "ns",
-                "-wi", "3",
-                "-i", "5",
-                "-t", "5",
-                "-f", "3"
-        )
-    }
-
-    register<JavaExec>("jmhCold") {
-        group = "benchmark"
-        description = "Run JMH benchmarks without warmup (cold state)"
-        classpath = files(jmhJar, configurations.jmh)
-        mainClass = "org.openjdk.jmh.Main"
-        args(
-                "-bm", "SingleShotTime",
-                "-tu", "ns",
-                "-wi", "0",
-                "-i", "1",
-                "-f", "3"
-        )
+        (options as StandardJavadocDocletOptions).links("https://jd.papermc.io/paper/1.21/")
     }
 
     register("buildPlugin") {
@@ -166,54 +117,4 @@ bukkit {
             "com.zaxxer:HikariCP:7.0.0",
             "com.typesafe:config:1.4.3"
     )
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
-
-            groupId = project.group.toString()
-            artifactId = "mylib-bukkit"
-            version = project.version.toString()
-
-            pom {
-                name = "MyLib"
-                description = "A lightweight and extensible Java library tailored for Minecraft plugin development"
-                url = "https://github.com/groundbreakingmc/MyLib"
-
-                licenses {
-                    license {
-                        name = "The Apache License, Version 2.0"
-                        url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
-                    }
-                }
-
-                developers {
-                    developer {
-                        id = "GroundbreakingMC"
-                        name = "Victor"
-                        url = "https://github.com/groundbreakingmc"
-                    }
-                }
-
-                scm {
-                    connection = "scm:git:git://github.com/groundbreakingmc/MyLib.git"
-                    developerConnection = "scm:git:ssh://git@github.com:groundbreakingmc/MyLib.git"
-                    url = "https://github.com/groundbreakingmc/MyLib"
-                }
-            }
-        }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/groundbreakingmc/MyLib")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
 }

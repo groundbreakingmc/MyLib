@@ -1,6 +1,7 @@
 # IntelliJ
 .idea/
 .gradle/
+.kotlin/
 build/
 com.github.groundbreakingmc.mylib.command/
 
