@@ -1,5 +1,5 @@
 plugins {
-    java
+    `java-library`
     `maven-publish`
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
     id("me.champeau.jmh") version "0.7.3"
@@ -7,6 +7,9 @@ plugins {
 
 group = "com.github.groundbreakingmc"
 version = "1.0-SNAPSHOT"
+
+// The plugin jar below takes the classes of mylib-kv, so that project is configured first.
+evaluationDependsOn(":mylib-kv")
 
 repositories {
     mavenCentral()
@@ -17,6 +20,9 @@ repositories {
 }
 
 dependencies {
+    // The key-value store, published alone too: it doesn't need Bukkit.
+    api(project(":mylib-kv"))
+
     // Minecraft
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
@@ -127,6 +133,13 @@ tasks {
 
     named("generateBukkitPluginDescription") {
         onlyIf { gradle.startParameter.taskNames.contains("buildPlugin") }
+    }
+
+    jar {
+        // The standalone plugin carries the key-value store itself; libraries get it as a dependency.
+        if (gradle.startParameter.taskNames.contains("buildPlugin")) {
+            from(project(":mylib-kv").the<SourceSetContainer>()["main"].output)
+        }
     }
 }
 

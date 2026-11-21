@@ -104,6 +104,14 @@ implementation("com.github.groundbreakingmc:MyLib:VERSION")
 ```
 </details>
 
+#### 🗄️ Only the key-value store
+
+The disk-backed key-value store (`KVRepository`) doesn't need Bukkit and is also published alone:
+
+```kotlin
+implementation("com.github.groundbreakingmc.MyLib:mylib-kv:VERSION")
+```
+
 ---
 
 ### 🧩 Shading MyLib (Recommended for plugins)
