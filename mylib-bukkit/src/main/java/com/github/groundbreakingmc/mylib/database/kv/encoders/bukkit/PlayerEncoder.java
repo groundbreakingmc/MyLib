@@ -1,6 +1,7 @@
-package com.github.groundbreakingmc.mylib.database.kv.encoders;
+package com.github.groundbreakingmc.mylib.database.kv.encoders.bukkit;
 
 import com.github.groundbreakingmc.mylib.database.kv.KeyValueEncoder;
+import com.github.groundbreakingmc.mylib.database.kv.encoders.UUIDEncoder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 

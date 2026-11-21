@@ -1,4 +1,4 @@
-package com.github.groundbreakingmc.mylib.database.kv.encoders;
+package com.github.groundbreakingmc.mylib.database.kv.encoders.bukkit;
 
 import com.github.groundbreakingmc.mylib.database.kv.KeyValueEncoder;
 import org.bukkit.Bukkit;

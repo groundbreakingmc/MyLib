@@ -1,31 +1,23 @@
-package com.github.groundbreakingmc.mylib.database.kv.encoders;
+package com.github.groundbreakingmc.mylib.database.kv.encoders.bukkit;
 
 import com.github.groundbreakingmc.mylib.database.kv.KeyValueEncoder;
-import org.bukkit.Bukkit;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.Nullable;
-
-import java.nio.charset.StandardCharsets;
 
 import static com.github.groundbreakingmc.mylib.database.kv.encoders.utils.ByteUtils.bytesToInt;
 import static com.github.groundbreakingmc.mylib.database.kv.encoders.utils.ByteUtils.putInt;
 
-public final class InventoryEncoder implements KeyValueEncoder<Inventory> {
+public final class ItemStackArrayEncoder implements KeyValueEncoder<ItemStack[]> {
 
     private final ItemStackEncoder itemStackEncoder = new ItemStackEncoder();
 
     @Override
-    public byte[] encode(Inventory inventory) {
-        final byte[] typeBytes = inventory.getType().name().getBytes(StandardCharsets.UTF_8);
-        final @Nullable ItemStack[] contents = inventory.getContents();
-        final byte[][] serializedItems = new byte[contents.length][];
+    public byte[] encode(ItemStack[] items) {
+        final byte[][] serializedItems = new byte[items.length][];
         int totalAmount = 0;
         int totalSize = 0;
 
-        for (int i = 0; i < contents.length; i++) {
-            final ItemStack item = contents[i];
+        for (int i = 0; i < items.length; i++) {
+            final ItemStack item = items[i];
             if (item != null) {
                 final byte[] itemBytes = this.itemStackEncoder.encode(item);
                 serializedItems[i] = itemBytes;
@@ -37,18 +29,13 @@ public final class InventoryEncoder implements KeyValueEncoder<Inventory> {
         int offset = 0;
 
         final byte[] bytes = new byte[
-                4 + typeBytes.length + 4 +  // type name length + type name + inventory size
+                4 +                         // array size
                         (4 * totalAmount) + // slot indices
                         (4 * totalAmount) + // item lengths
                         totalSize           // item data
                 ];
 
-        putInt(bytes, offset, typeBytes.length);
-        offset += 4;
-        System.arraycopy(typeBytes, 0, bytes, offset, typeBytes.length);
-        offset += typeBytes.length;
-
-        putInt(bytes, offset, inventory.getSize());
+        putInt(bytes, offset, items.length);
         offset += 4;
 
         for (int i = 0; i < serializedItems.length; i++) {
@@ -67,21 +54,13 @@ public final class InventoryEncoder implements KeyValueEncoder<Inventory> {
     }
 
     @Override
-    public Inventory decode(byte[] data) {
+    public ItemStack[] decode(byte[] data) {
         int offset = 0;
 
-        int typeLength = bytesToInt(data, offset);
-        offset += 4;
-        String typeName = new String(data, offset, typeLength, StandardCharsets.UTF_8);
-        offset += typeLength;
-
-        int invSize = bytesToInt(data, offset);
+        int arraySize = bytesToInt(data, offset);
         offset += 4;
 
-        final InventoryType type = InventoryType.valueOf(typeName);
-        final Inventory inv = type == InventoryType.CHEST
-                ? Bukkit.createInventory(null, invSize)
-                : Bukkit.createInventory(null, type);
+        final ItemStack[] items = new ItemStack[arraySize];
 
         while (offset < data.length) {
             final int slot = bytesToInt(data, offset);
@@ -94,9 +73,9 @@ public final class InventoryEncoder implements KeyValueEncoder<Inventory> {
             System.arraycopy(data, offset, itemBytes, 0, length);
             offset += length;
 
-            inv.setItem(slot, this.itemStackEncoder.decode(itemBytes));
+            items[slot] = this.itemStackEncoder.decode(itemBytes);
         }
 
-        return inv;
+        return items;
     }
 }
