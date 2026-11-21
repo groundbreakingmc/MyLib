@@ -13,7 +13,6 @@ vault-api = { module = "com.github.MilkBowl:VaultAPI", version = "1.7.1" }
 luckperms-api = { module = "net.luckperms:api", version = "5.4" }
 worldguard-bukkit = { module = "com.sk89q.worldguard:worldguard-bukkit", version = "7.0.5" }
 supervanish = { module = "com.github.LeonMangler:SuperVanish", version = "6.2.19" }
-placeholderapi = { module = "me.clip:placeholderapi", version = "2.11.6" }
 
 # Mojang
 authlib = { module = "com.mojang:authlib", version = "3.13.56" }
@@ -22,7 +21,6 @@ authlib = { module = "com.mojang:authlib", version = "3.13.56" }
 adventure-text-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
 adventure-text-serializer-legacy = { module = "net.kyori:adventure-text-serializer-legacy", version.ref = "adventure" }
 adventure-text-serializer-plain = { module = "net.kyori:adventure-text-serializer-plain", version.ref = "adventure" }
-adventure-text-logger-slf4j = { module = "net.kyori:adventure-text-logger-slf4j", version.ref = "adventure" }
 
 # Utilities
 configurate-yaml = { module = "org.spongepowered:configurate-yaml", version.ref = "configurate" }

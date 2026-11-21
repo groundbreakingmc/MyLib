@@ -8,7 +8,6 @@ description = "A lightweight and extensible Java library tailored for Minecraft 
 repositories {
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://maven.enginehub.org/repo/")
-    maven("https://repo.extendedclip.com/releases/")
     maven("https://jitpack.io")
 }
 
@@ -32,13 +31,9 @@ dependencies {
         exclude(group = "org.spigotmc", module = "spigot-api")
     }
     compileOnly(libs.supervanish)
-    compileOnly(libs.placeholderapi)
 
     // Mojang
     compileOnly(libs.authlib)
-
-    // Adventure
-    compileOnly(libs.adventure.text.logger.slf4j)
 
     // Utilities
     compileOnly(libs.caffeine)
