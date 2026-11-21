@@ -109,9 +109,10 @@ implementation("com.github.groundbreakingmc.MyLib:mylib-bukkit:VERSION")
 `mylib-bukkit` already includes the modules below. They don't need Bukkit, so they can also be added alone,
 for example to a Velocity plugin:
 
-| Module     | Contents                                     |
-|------------|----------------------------------------------|
-| `mylib-kv` | Disk-backed key-value store (`KVRepository`) |
+| Module            | Contents                                                               |
+|-------------------|------------------------------------------------------------------------|
+| `mylib-eventbus`  | Synchronous event bus with priorities (`EventBus`)                     |
+| `mylib-kv`        | Disk-backed key-value store (`KVRepository`)                           |
 
 ```kotlin
 implementation("com.github.groundbreakingmc.MyLib:mylib-kv:VERSION")

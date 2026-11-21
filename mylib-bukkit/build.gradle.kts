@@ -13,7 +13,8 @@ repositories {
 }
 
 dependencies {
-    // The key-value store, published alone too: it doesn't need Bukkit.
+    // The modules without Bukkit, published alone too.
+    api(project(":mylib-eventbus"))
     api(project(":mylib-kv"))
 
     // Minecraft
