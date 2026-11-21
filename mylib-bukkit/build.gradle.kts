@@ -18,6 +18,7 @@ dependencies {
     api(project(":mylib-sql"))
     api(project(":mylib-kv"))
     api(project(":mylib-colorizer"))
+    api(project(":mylib-config"))
 
     // Minecraft
     compileOnly(libs.paper.api)
@@ -40,13 +41,10 @@ dependencies {
     compileOnly(libs.adventure.text.logger.slf4j)
 
     // Utilities
-    compileOnly(libs.configurate.yaml)
-    compileOnly(libs.configurate.hocon)
     compileOnly(libs.caffeine)
     compileOnly(libs.guava)
     compileOnly(libs.fastutil)
     testImplementation(libs.fastutil)
-    compileOnly(libs.typesafe.config)
 
     // Annotations
     compileOnly(libs.lombok)

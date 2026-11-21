@@ -1,10 +1,8 @@
 package com.github.groundbreakingmc.mylib.config;
 
-import com.github.groundbreakingmc.mylib.config.source.BukkitYamlSource;
 import com.github.groundbreakingmc.mylib.config.source.ConfigurateSource;
 import com.github.groundbreakingmc.mylib.config.source.LightbendSource;
 import com.typesafe.config.ConfigFactory;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
@@ -12,15 +10,11 @@ import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 /**
  * Built-in {@link ConfigBackend} implementations.
  * Each returns a {@link com.github.groundbreakingmc.mylib.config.source.ConfigSource};
- * the wrapping into a {@link Config} or {@link BukkitConfig} is done by {@link ConfigFactory}.
+ * the wrapping into a {@link Config} is done by {@link com.github.groundbreakingmc.mylib.config.ConfigFactory}.
+ *
+ * <p>Bukkit's own YAML comes with mylib-bukkit: {@code BukkitYamlSource::load}.
  */
 public final class ConfigBackends {
-
-    /**
-     * Bukkit's built-in YAML (SnakeYAML). No extra dependencies.
-     */
-    public static final ConfigBackend BUKKIT_YAML =
-            file -> new BukkitYamlSource(YamlConfiguration.loadConfiguration(file));
 
     /**
      * Configurate YAML. Requires {@code configurate-yaml}.

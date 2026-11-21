@@ -1,5 +1,8 @@
-package com.github.groundbreakingmc.mylib.config;
+package com.github.groundbreakingmc.mylib.config.bukkit;
 
+import com.github.groundbreakingmc.mylib.config.Config;
+import com.github.groundbreakingmc.mylib.config.ConfigSerializer;
+import com.github.groundbreakingmc.mylib.config.SerializerRegistry;
 import com.github.groundbreakingmc.mylib.config.exception.SerializerNotFoundException;
 import com.github.groundbreakingmc.mylib.config.serializer.bukkit.*;
 import com.github.groundbreakingmc.mylib.config.source.ConfigSource;
@@ -23,6 +26,9 @@ import java.util.List;
  *
  * <p>Sub-sections returned by {@link #findSection} / {@link #sectionOr} are also
  * {@code BukkitConfig} instances — the {@link #wrap} override ensures that.
+ *
+ * <p>Loaded with any backend, for example
+ * {@code ConfigFactory.of(file).backend(BukkitYamlSource::load).load(BukkitConfig::new)}.
  */
 public final class BukkitConfig extends Config {
 

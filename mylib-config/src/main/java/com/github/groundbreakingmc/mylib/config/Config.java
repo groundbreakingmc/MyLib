@@ -30,7 +30,7 @@ import java.util.Set;
  * </ul>
  *
  * <p>Custom types are resolved through a {@link SerializerRegistry}.
- * Subclasses (e.g. {@link BukkitConfig}) override {@link #wrap} to ensure sub-sections
+ * Subclasses (e.g. {@code BukkitConfig} from mylib-bukkit) override {@link #wrap} to ensure sub-sections
  * are also returned as the right wrapper type, and may register platform-specific serializers.
  */
 public class Config {

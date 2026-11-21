@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -16,8 +17,9 @@ import java.util.function.Function;
  * Entry point for building configs.
  *
  * <p>Assembles a {@link ConfigSource} (backend) into a {@link Config} (wrapper).
- * Use {@link Builder#load()} for a plain wrapper, {@link Builder#loadBukkit()} for
- * a {@link BukkitConfig} with Bukkit-typed helpers and auto-registered serializers.
+ * Use {@link Builder#load()} for a plain wrapper, or {@link Builder#load(BiFunction)} for
+ * a platform wrapper such as {@code BukkitConfig} from mylib-bukkit, with Bukkit-typed helpers
+ * and auto-registered serializers.
  *
  * <pre>{@code
  * // Plain config
@@ -27,13 +29,15 @@ import java.util.function.Function;
  *     .serializers(r -> r.register(SoundSettings.class, SoundSettings::fromConfig))
  *     .load();
  *
- * // Bukkit config — Location/Material/Sound/World/PotionEffectType auto-registered
+ * // Bukkit config (mylib-bukkit) — Location/Material/Sound/World/PotionEffectType auto-registered
  * BukkitConfig cfg = ConfigFactory.of(plugin.getDataFolder(), "config.yml", plugin::getResource)
- *     .loadBukkit();
+ *     .backend(BukkitYamlSource::load)
+ *     .load(BukkitConfig::new);
  *
  * // Already have a File in hand? Skip the folder/name split entirely.
  * File configFile = ...;
- * Config messages = ConfigFactory.of(configFile);
+ * Config messages = ConfigFactory.of(configFile)
+ *     .backend(ConfigBackends.CONFIGURATE_YAML)
  *     .load();
  * }</pre>
  */
@@ -89,7 +93,8 @@ public final class ConfigFactory {
         private final Function<String, InputStream> resources;
         private final SerializerRegistry registry = new SerializerRegistry();
 
-        private ConfigBackend backend = ConfigBackends.BUKKIT_YAML;
+        @Nullable
+        private ConfigBackend backend;
         private double version = 0.0;
         private String versionPath = "config-version";
 
@@ -119,7 +124,8 @@ public final class ConfigFactory {
         }
 
         /**
-         * Backend used to parse/load the file. Defaults to {@link ConfigBackends#BUKKIT_YAML}.
+         * Backend used to parse/load the file, e.g. {@link ConfigBackends#CONFIGURATE_YAML}.
+         * Required: there is no default, because every backend needs its own library.
          */
         public Builder backend(@NotNull ConfigBackend backend) {
             this.backend = backend;
@@ -128,7 +134,7 @@ public final class ConfigFactory {
 
         /**
          * Registers custom (de)serializers on top of whatever the target
-         * {@link Config}/{@link BukkitConfig} auto-registers.
+         * wrapper (e.g. {@code BukkitConfig}) auto-registers.
          */
         public Builder serializers(@NotNull Consumer<SerializerRegistry> configure) {
             configure.accept(this.registry);
@@ -139,32 +145,45 @@ public final class ConfigFactory {
          * Loads and wraps as a plain {@link Config}.
          */
         public Config load() {
-            return new Config(loadSource(), this.registry);
+            return this.load(Config::new);
         }
 
         /**
-         * Loads and wraps as a {@link BukkitConfig}.
-         * Bukkit-typed serializers (Location, Material, …) are auto-registered.
+         * Loads and wraps the config with {@code wrapper}, for wrappers with platform types.
+         *
+         * <p>For example, {@code load(BukkitConfig::new)} from mylib-bukkit returns a config
+         * with Bukkit-typed helpers and auto-registered Bukkit serializers.
+         *
+         * @param wrapper creates the wrapper from the loaded source and the registry
+         * @param <C>     the wrapper type
+         * @return the loaded config
          */
-        public BukkitConfig loadBukkit() {
-            return new BukkitConfig(loadSource(), this.registry);
+        public <C extends Config> C load(@NotNull BiFunction<ConfigSource, SerializerRegistry, C> wrapper) {
+            return wrapper.apply(this.loadSource(), this.registry);
         }
 
         // ── internals ──────────────────────────────────────────────────────────
 
         private ConfigSource loadSource() {
+            final ConfigBackend backend = this.backend;
+            if (backend == null) {
+                throw new IllegalStateException(
+                        "Config \"" + this.configFile.getName() + "\" has no backend: call backend(...) before load()"
+                );
+            }
+
             if (!this.configFile.exists()) {
                 this.copyDefault(this.configFile);
             }
 
-            ConfigSource source = this.backend.load(this.configFile);
+            ConfigSource source = backend.load(this.configFile);
 
             if (this.version != 0.0) {
                 final Double actual = source.decimal(this.versionPath);
                 if (actual == null || actual != this.version) {
                     this.backup(this.configFile);
                     this.copyDefault(this.configFile);
-                    source = this.backend.load(this.configFile);
+                    source = backend.load(this.configFile);
                 }
             }
 

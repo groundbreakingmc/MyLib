@@ -11,7 +11,7 @@ import java.util.Map;
  * Register custom types via {@link #register} before calling
  * {@link ConfigFactory.Builder#load()}.
  * <p>
- * {@link BukkitConfig} calls {@link #registerIfAbsent} internally for Bukkit types —
+ * {@code BukkitConfig} from mylib-bukkit calls {@link #registerIfAbsent} internally for Bukkit types —
  * your own registrations always take precedence.
  */
 public final class SerializerRegistry {
@@ -28,7 +28,7 @@ public final class SerializerRegistry {
 
     /**
      * Registers the serializer for {@code type} only if none is registered yet.
-     * Used internally by {@link BukkitConfig} so user registrations always win.
+     * Used internally by {@code BukkitConfig} so user registrations always win.
      */
     public <T> SerializerRegistry registerIfAbsent(Class<T> type, ConfigSerializer<T> serializer) {
         this.serializers.putIfAbsent(type, serializer);

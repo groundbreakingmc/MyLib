@@ -12,7 +12,8 @@ import java.util.Set;
  * All methods return {@code null} when the path is absent — no defaults,
  * no throwing. That is the responsibility of {@link com.github.groundbreakingmc.mylib.config.Config}.
  * <p>
- * Implementations: {@link BukkitYamlSource}, {@link ConfigurateSource}, {@link LightbendSource}.
+ * Implementations: {@link ConfigurateSource}, {@link LightbendSource}, and {@code BukkitYamlSource}
+ * from mylib-bukkit.
  */
 public interface ConfigSource {
 

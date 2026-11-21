@@ -1,9 +1,12 @@
-package com.github.groundbreakingmc.mylib.config.source;
+package com.github.groundbreakingmc.mylib.config.source.bukkit;
 
+import com.github.groundbreakingmc.mylib.config.source.ConfigSource;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,6 +24,20 @@ public final class BukkitYamlSource implements ConfigSource {
 
     private BukkitYamlSource(ConfigurationSection section) {
         this.section = section;
+    }
+
+    /**
+     * Loads the file with Bukkit's built-in YAML, which needs no extra libraries.
+     * Fits {@code ConfigFactory.Builder#backend} as {@code BukkitYamlSource::load}.
+     *
+     * <p>Like {@link YamlConfiguration#loadConfiguration(File)}, a missing file loads as empty,
+     * and a broken one is logged and loads as empty too.
+     *
+     * @param file the YAML file
+     * @return the source over the loaded file
+     */
+    public static BukkitYamlSource load(File file) {
+        return new BukkitYamlSource(YamlConfiguration.loadConfiguration(file));
     }
 
     @Override

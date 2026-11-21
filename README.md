@@ -115,6 +115,7 @@ for example to a Velocity plugin:
 | `mylib-sql`       | SQL database with HikariCP and query builders (`Database`)             |
 | `mylib-kv`        | Disk-backed key-value store (`KVRepository`)                           |
 | `mylib-colorizer` | String and Adventure component colorizers (`ColorizerFactory`)         |
+| `mylib-config`    | Config wrapper over Configurate and Lightbend Config (`ConfigFactory`) |
 
 ```kotlin
 implementation("com.github.groundbreakingmc.MyLib:mylib-kv:VERSION")
