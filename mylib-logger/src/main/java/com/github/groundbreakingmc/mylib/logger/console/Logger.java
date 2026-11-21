@@ -1,6 +1,5 @@
 package com.github.groundbreakingmc.mylib.logger.console;
 
-import com.destroystokyo.paper.utils.PaperPluginLogger;
 import com.github.groundbreakingmc.mylib.logger.console.adapter.LogLevel;
 import com.github.groundbreakingmc.mylib.logger.console.adapter.LoggerAdapter;
 import com.github.groundbreakingmc.mylib.logger.console.adapter.impl.JulAdapter;
@@ -174,6 +173,14 @@ public class Logger extends java.util.logging.Logger implements org.slf4j.Logger
     // FACTORY METHODS
     // ============================================
 
+    /**
+     * Wraps a JUL logger.
+     *
+     * <p>On Bukkit and BungeeCord, pass {@code plugin.getLogger()}.
+     *
+     * @param julLogger the logger to write to
+     * @return the wrapper
+     */
     public static Logger create(java.util.logging.Logger julLogger) {
         return new Logger(
                 julLogger.getName(),
@@ -181,24 +188,19 @@ public class Logger extends java.util.logging.Logger implements org.slf4j.Logger
         );
     }
 
+    /**
+     * Wraps an SLF4J logger.
+     *
+     * <p>On Velocity, pass the logger the proxy injects into the plugin.
+     *
+     * @param slf4jLogger the logger to write to
+     * @return the wrapper
+     */
     public static Logger create(org.slf4j.Logger slf4jLogger) {
         return new Logger(
                 slf4jLogger.getName(),
                 new Slf4JAdapter(slf4jLogger)
         );
-    }
-
-    public static Logger fromBukkit(org.bukkit.plugin.Plugin plugin) {
-        final java.util.logging.Logger logger = PaperPluginLogger.getLogger(plugin.getDescription());
-        return new Logger(logger.getName(), new JulAdapter(logger));
-    }
-
-    public static Logger fromBungee(net.md_5.bungee.api.plugin.Plugin plugin) {
-        return create(plugin.getLogger());
-    }
-
-    public static Logger fromVelocity(org.slf4j.Logger logger) {
-        return create(logger);
     }
 
     // ============================================

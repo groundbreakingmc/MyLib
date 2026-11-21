@@ -116,6 +116,7 @@ for example to a Velocity plugin:
 | `mylib-kv`        | Disk-backed key-value store (`KVRepository`)                           |
 | `mylib-colorizer` | String and Adventure component colorizers (`ColorizerFactory`)         |
 | `mylib-config`    | Config wrapper over Configurate and Lightbend Config (`ConfigFactory`) |
+| `mylib-logger`    | Colored console logger and async file logger (`Logger`, `FileLogger`)  |
 
 ```kotlin
 implementation("com.github.groundbreakingmc.MyLib:mylib-kv:VERSION")

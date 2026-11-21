@@ -6,6 +6,7 @@ include(
     "mylib-kv",
     "mylib-colorizer",
     "mylib-config",
+    "mylib-logger",
     "mylib-bukkit",
     "mylib-plugin",
 )

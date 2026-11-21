@@ -19,11 +19,11 @@ dependencies {
     api(project(":mylib-kv"))
     api(project(":mylib-colorizer"))
     api(project(":mylib-config"))
+    api(project(":mylib-logger"))
 
     // Minecraft
     compileOnly(libs.paper.api)
     testImplementation(libs.paper.api)
-    compileOnly(libs.bungeecord.api)
 
     // Plugins
     compileOnly(libs.vault.api)

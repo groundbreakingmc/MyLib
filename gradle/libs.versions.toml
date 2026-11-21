@@ -7,7 +7,6 @@ jmh = "1.37"
 [libraries]
 # Minecraft
 paper-api = { module = "io.papermc.paper:paper-api", version = "1.21.11-R0.1-SNAPSHOT" }
-bungeecord-api = { module = "net.md-5:bungeecord-api", version = "1.21-R0.3" }
 
 # Plugins
 vault-api = { module = "com.github.MilkBowl:VaultAPI", version = "1.7.1" }
@@ -33,6 +32,7 @@ guava = { module = "com.google.guava:guava", version = "33.4.8-jre" }
 fastutil = { module = "it.unimi.dsi:fastutil", version = "8.5.16" }
 hikaricp = { module = "com.zaxxer:HikariCP", version = "7.0.0" }
 typesafe-config = { module = "com.typesafe:config", version = "1.4.3" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
 
 # Annotations
 lombok = { module = "org.projectlombok:lombok", version = "1.18.38" }
