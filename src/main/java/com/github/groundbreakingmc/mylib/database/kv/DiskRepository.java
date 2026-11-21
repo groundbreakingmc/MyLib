@@ -44,7 +44,8 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     private static final byte FLAG_ALIVE = 0;
     private static final byte FLAG_DELETED = 1;
 
-    private static final int CHUNK_SIZE = 8 * 1024; // 8 KB — used only in copyChunked
+    // The ratio alone would rewrite a small file after almost every batch, syncing it each time.
+    private static final long MIN_RATIO_DEAD_BYTES = 64 * 1024;
 
     private static final System.Logger LOGGER = System.getLogger(DiskRepository.class.getName());
 
@@ -140,10 +141,6 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     private static final ThreadLocal<ByteBuffer> INT_BUF =
             ThreadLocal.withInitial(() -> ByteBuffer.allocate(4));
 
-    // used only in copyChunked during compaction — never grows beyond CHUNK_SIZE
-    private static final ThreadLocal<ByteBuffer> CHUNK_BUF =
-            ThreadLocal.withInitial(() -> ByteBuffer.allocate(CHUNK_SIZE));
-
     private final Path path;
     private final KeyValueEncoder<K> keyEncoder;
     private final KeyValueEncoder<V> valueEncoder;
@@ -194,6 +191,8 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
         }
         try {
             this.lockFile();
+            // Left by a compaction interrupted before the swap; the data file is still whole.
+            Files.deleteIfExists(this.tempPath());
             this.loadOffsets();
         } catch (IOException ex) {
             this.closeQuietly(ex);
@@ -405,85 +404,87 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
             this.lock.writeLock().unlock();
         }
 
-        if (oldOffset != -1L) this.deadBytes += sizeOfLiveRecord(keyBytes.length, oldOffset);
+        if (oldOffset != -1L) this.deadBytes += this.sizeOfLiveRecord(keyBytes.length, oldOffset);
         if (isTombstone) this.deadBytes += record.limit();
     }
 
-    private long sizeOfLiveRecord(int keyLen, long offset) {
-        try {
-            return 4L + keyLen + 1 + 4 + readInt(this.file, offset + 4 + keyLen + 1);
-        } catch (IOException ex) {
-            return 0L;
-        }
+    // [keyLen(4)][keyBytes][flag(1)][valueLen(4)][valueBytes]
+    private long sizeOfLiveRecord(int keyLen, long offset) throws IOException {
+        return 4L + keyLen + 1 + 4 + readInt(this.file, offset + 4 + keyLen + 1);
     }
 
     // -------------------------------------------------------------------------
     // Compaction
     // -------------------------------------------------------------------------
 
-    private void checkAndCompact() {
-        if (this.end == 0) return;
-        final boolean overRatio = (double) this.deadBytes / this.end >= this.config.compactRatio();
+    private void checkAndCompact() throws IOException {
+        if (this.deadBytes == 0) return;
+        final boolean overRatio = this.deadBytes >= MIN_RATIO_DEAD_BYTES
+                && (double) this.deadBytes / this.end >= this.config.compactRatio();
         final boolean overBytes = this.deadBytes >= this.config.compactBytes();
         if (overRatio || overBytes) this.compact();
     }
 
-    private void compact() {
-        final Path tempPath = this.path.resolveSibling(this.path.getFileName() + ".tmp");
+    private void compact() throws IOException {
+        final Path tempPath = this.tempPath();
 
-        final Object2LongMap<ByteArrayKey> newOffsets = new Object2LongOpenHashMap<>();
+        final Object2LongMap<ByteArrayKey> newOffsets = new Object2LongOpenHashMap<>(this.offsets.size());
         newOffsets.defaultReturnValue(-1L);
         long newEnd = 0;
 
-        // The writer is the only thread that changes the index, so it reads it here without the lock.
-        try (FileChannel temp = openChannel(tempPath)) {
+        // Truncated: a temp file left by an interrupted compaction may be longer than this one.
+        try (FileChannel temp = FileChannel.open(tempPath,
+                StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            // The writer is the only thread that changes the index, so it reads it here without the lock.
             for (final Object2LongMap.Entry<ByteArrayKey> entry : this.offsets.object2LongEntrySet()) {
-                final ByteArrayKey arrayKey = entry.getKey();
-                final byte[] keyBytes = arrayKey.data;
                 final long oldOffset = entry.getLongValue();
-                final int keyLen = keyBytes.length;
-
-                final int valueLen = readInt(this.file, oldOffset + 4 + keyLen + 1);
-
-                // [keyLen(4)][keyBytes][flag(1)][valueLen(4)]
-                final ByteBuffer header = ByteBuffer.allocate(4 + keyLen + 1 + 4);
-                header.putInt(keyLen);
-                header.put(keyBytes);
-                header.put(FLAG_ALIVE);
-                header.putInt(valueLen);
-                header.flip();
-
-                final long recordStart = newEnd;
-                writeBytes(temp, header, newEnd);
-                newEnd += header.capacity();
-
-                // value is copied in chunks — no allocation proportional to value size
-                copyChunked(this.file, oldOffset + 4 + keyLen + 1 + 4, temp, newEnd, valueLen);
-                newEnd += valueLen;
-
-                newOffsets.put(arrayKey, recordStart);
+                final long size = this.sizeOfLiveRecord(entry.getKey().data.length, oldOffset);
+                transferFully(this.file, oldOffset, size, temp);
+                newOffsets.put(entry.getKey(), newEnd);
+                newEnd += size;
             }
-        } catch (IOException ex) {
-            throw new UncheckedIOException("Compaction failed while writing temp file", ex);
+            // On the disk before it replaces the data file, or a power loss could leave an empty one.
+            temp.force(true);
         }
 
         this.lock.writeLock().lock();
         try {
             this.file.close();
-            Files.move(tempPath, this.path,
-                    StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE);
+            try {
+                Files.move(tempPath, this.path,
+                        StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException ex) {
+                // The old file is still in place, so reads go on with it.
+                this.file = openChannel(this.path);
+                this.lockFile();
+                throw ex;
+            }
             this.file = openChannel(this.path);
-            this.lockFile();
-
             this.offsets.clear();
             this.offsets.putAll(newOffsets);
             this.end = newEnd;
             this.deadBytes = 0;
-        } catch (IOException ex) {
-            throw new UncheckedIOException("Compaction failed while swapping files", ex);
+
+            this.lockFile();
+            this.syncDirectory();
         } finally {
             this.lock.writeLock().unlock();
+        }
+    }
+
+    private Path tempPath() {
+        return this.path.resolveSibling(this.path.getFileName() + ".tmp");
+    }
+
+    // Makes the rename itself survive a power loss.
+    private void syncDirectory() {
+        final Path directory = this.path.toAbsolutePath().getParent();
+        if (directory == null) return;
+        try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
+            channel.force(true);
+        } catch (IOException ex) {
+            // Windows can't open a directory as a channel; the rename is as durable as its file system makes it.
         }
     }
 
@@ -575,27 +576,13 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
         }
     }
 
-    private static void copyChunked(
-            FileChannel src, long srcPos,
-            FileChannel dst, long dstPos,
-            int length) throws IOException {
-        final ByteBuffer chunk = CHUNK_BUF.get();
-        int done = 0;
-        while (done < length) {
-            final int toRead = Math.min(CHUNK_SIZE, length - done);
-            chunk.clear().limit(toRead);
-            long rp = srcPos + done;
-            while (chunk.hasRemaining()) {
-                final int n = src.read(chunk, rp);
-                if (n < 0) throw new IOException("Unexpected end of file during compaction at " + rp);
-                rp += n;
-            }
-            chunk.flip();
-            long wp = dstPos + done;
-            while (chunk.hasRemaining()) {
-                wp += dst.write(chunk, wp);
-            }
-            done += toRead;
+    // Appends the range at the destination's position; the kernel copies it without a buffer here.
+    private static void transferFully(FileChannel src, long pos, long count, FileChannel dst) throws IOException {
+        long done = 0;
+        while (done < count) {
+            final long n = src.transferTo(pos + done, count - done, dst);
+            if (n <= 0) throw new IOException("Unexpected end of file during compaction at " + (pos + done));
+            done += n;
         }
     }
 }

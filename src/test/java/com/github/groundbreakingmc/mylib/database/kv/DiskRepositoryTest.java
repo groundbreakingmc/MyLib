@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -428,6 +430,26 @@ class DiskRepositoryTest {
         var repo2 = open(dir);
         assertEquals(Optional.of("yes"), repo2.load("alive"));
         assertEquals(Optional.empty(), repo2.load("dead"));
+        repo2.close();
+    }
+
+    @Test
+    void tempFileOfInterruptedCompactionDoesNotLeakIntoData(@TempDir Path dir) throws Exception {
+        // Longer than the compacted file will be, as an interrupted compaction of a bigger file leaves it.
+        final byte[] garbage = new byte[64 * 1024];
+        Arrays.fill(garbage, (byte) 0xFF);
+        Files.write(dir.resolve("test.db.tmp"), garbage);
+
+        var config = new RepositoryConfig(false, 64, 0.01, 1L);
+        var repo = open(dir, config);
+        for (int i = 0; i < 10; i++) repo.save("key-" + i, "value-" + i);
+        for (int i = 0; i < 10; i++) repo.save("key-" + i, "updated-" + i);
+        repo.close();
+
+        var repo2 = open(dir);
+        for (int i = 0; i < 10; i++) {
+            assertEquals(Optional.of("updated-" + i), repo2.load("key-" + i));
+        }
         repo2.close();
     }
 

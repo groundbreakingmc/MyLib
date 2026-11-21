@@ -23,6 +23,8 @@ package com.github.groundbreakingmc.mylib.database.kv;
  * @param compactRatio fraction of dead bytes relative to total file size that triggers
  *                     compaction. For example, {@code 0.20} means compaction runs when
  *                     at least 20% of the file is occupied by stale or deleted records.
+ *                     The ratio applies once at least 64 KB are dead, so a small file
+ *                     isn't rewritten after almost every batch.
  *                     Must be in the range {@code (0, 1)}.
  * @param compactBytes absolute number of dead bytes that triggers compaction, regardless
  *                     of the ratio. Useful for large files where a small ratio still
