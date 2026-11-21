@@ -2,19 +2,22 @@ package com.github.groundbreakingmc.mylib.database.kv;
 
 import it.unimi.dsi.fastutil.objects.*;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -27,6 +30,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * <p>
  * Record format (tombstone):
  * [keyLen(4)][keyBytes][flag=1(1)]
+ * <p>
+ * Callers encode values and queue writes; one writer thread appends them, updates the index and
+ * compacts the file. The index, the writes not appended yet and the cache change only under the
+ * write lock, so a reader sees either a write still in the queue or the index entry it made.
  */
 final class DiskRepository<K, V> implements KVRepository<K, V> {
 
@@ -38,6 +45,8 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     private static final byte FLAG_DELETED = 1;
 
     private static final int CHUNK_SIZE = 8 * 1024; // 8 KB — used only in copyChunked
+
+    private static final System.Logger LOGGER = System.getLogger(DiskRepository.class.getName());
 
     // -------------------------------------------------------------------------
     // Builder
@@ -87,7 +96,19 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     // Internal types
     // -------------------------------------------------------------------------
 
-    private record WriteTask<V>(ByteArrayKey arrayKey, byte[] keyBytes, V value) {}
+    private sealed interface Task permits Write, Stop {
+    }
+
+    /**
+     * A save, or a delete if {@code bytes} is {@code null}. The value is encoded on the caller's
+     * thread; the object stays for reads until the writer appends it.
+     */
+    private record Write<V>(ByteArrayKey key, @Nullable V value, byte @Nullable [] bytes) implements Task {
+    }
+
+    private enum Stop implements Task {
+        INSTANCE
+    }
 
     static final class ByteArrayKey {
 
@@ -116,13 +137,8 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     // Fields
     // -------------------------------------------------------------------------
 
-    private static final WriteTask<?> POISON = new WriteTask<>(null, null, null);
-
     private static final ThreadLocal<ByteBuffer> INT_BUF =
             ThreadLocal.withInitial(() -> ByteBuffer.allocate(4));
-
-    private static final ThreadLocal<ByteBuffer> FLAG_BUF =
-            ThreadLocal.withInitial(() -> ByteBuffer.allocate(1));
 
     // used only in copyChunked during compaction — never grows beyond CHUNK_SIZE
     private static final ThreadLocal<ByteBuffer> CHUNK_BUF =
@@ -133,18 +149,26 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     private final KeyValueEncoder<V> valueEncoder;
     private final RepositoryConfig config;
 
+    // Replaced by compaction under the write lock; the file lock lasts until the channel closes.
     private FileChannel file;
-    private FileLock fileLock;
+    // Used by the writer thread only.
     private long end;
     private long deadBytes;
 
-    private final BlockingQueue<WriteTask<V>> writeQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Task> writeQueue = new LinkedBlockingQueue<>();
     private final Thread writerThread;
 
-    private final ReadWriteLock compactLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
+    // Guarded by the lock: read under it, changed under the write lock.
     private final Object2LongMap<ByteArrayKey> offsets = new Object2LongOpenHashMap<>();
-    private final Object2ObjectMap<ByteArrayKey, V> cache;
+    // The latest write of each key the writer hasn't appended yet.
+    private final Object2ObjectMap<ByteArrayKey, Write<V>> pending = new Object2ObjectOpenHashMap<>();
+    private boolean closed;
+    private @Nullable Throwable failure;
+
+    // Concurrent: readers fill it under the read lock; saves and deletes change it under the write lock.
+    private final @Nullable Map<ByteArrayKey, V> cache;
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -155,27 +179,31 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
             @NotNull KeyValueEncoder<K> keyEncoder,
             @NotNull KeyValueEncoder<V> valueEncoder,
             @NotNull RepositoryConfig config) {
+        this.path = path;
+        this.keyEncoder = keyEncoder;
+        this.valueEncoder = valueEncoder;
+        this.config = config;
+
+        this.offsets.defaultReturnValue(-1L);
+        this.cache = config.useCache() ? new ConcurrentHashMap<>() : null;
+
         try {
-            this.path = path;
-            this.keyEncoder = keyEncoder;
-            this.valueEncoder = valueEncoder;
-            this.config = config;
-
             this.file = openChannel(path);
-            this.acquireFileLock();
-
-            this.offsets.defaultReturnValue(-1L);
-            this.cache = config.useCache()
-                    ? Object2ObjectMaps.synchronize(new Object2ObjectOpenHashMap<>())
-                    : null;
-
-            this.loadOffsets();
-
-            this.writerThread = Thread.ofVirtual().start(this::writerLoop);
         } catch (IOException ex) {
-            this.releaseFileLock();
-            throw new RuntimeException(ex);
+            throw new UncheckedIOException("Can't open " + path, ex);
         }
+        try {
+            this.lockFile();
+            this.loadOffsets();
+        } catch (IOException ex) {
+            this.closeQuietly(ex);
+            throw new UncheckedIOException("Can't read " + path, ex);
+        } catch (RuntimeException ex) {
+            this.closeQuietly(ex);
+            throw ex;
+        }
+
+        this.writerThread = Thread.ofVirtual().start(this::writerLoop);
     }
 
     // -------------------------------------------------------------------------
@@ -184,69 +212,93 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
 
     @Override
     public void save(@NotNull K key, @NotNull V value) {
-        final byte[] keyBytes = this.keyEncoder.encode(key);
-        final ByteArrayKey arrayKey = new ByteArrayKey(keyBytes);
-        if (this.cache != null) this.cache.put(arrayKey, value);
-        this.putTask(new WriteTask<>(arrayKey, keyBytes, value));
+        // Encoded on the caller's thread: the file gets the value as it is at this call,
+        // and an encoder error is thrown to the caller and can't stop the writer.
+        final byte[] bytes = this.valueEncoder.encode(value);
+        this.enqueue(new Write<>(this.keyOf(key), value, bytes));
     }
 
     @Override
     public void delete(@NotNull K key) {
-        final byte[] keyBytes = this.keyEncoder.encode(key);
-        final ByteArrayKey arrayKey = new ByteArrayKey(keyBytes);
-        if (this.cache != null) this.cache.remove(arrayKey);
-        this.putTask(new WriteTask<>(arrayKey, keyBytes, null));
+        this.enqueue(new Write<>(this.keyOf(key), null, null));
     }
 
     @Override
     public Optional<V> load(@NotNull K key) {
-        final byte[] keyBytes = this.keyEncoder.encode(key);
-        final ByteArrayKey arrayKey = new ByteArrayKey(keyBytes);
+        final ByteArrayKey arrayKey = this.keyOf(key);
 
-        if (this.cache != null) {
-            final V cached = this.cache.get(arrayKey);
-            if (cached != null) return Optional.of(cached);
-        }
-
-        this.compactLock.readLock().lock();
+        this.lock.readLock().lock();
         try {
+            if (this.closed) throw new IllegalStateException("The repository is closed: " + this.path);
+
+            if (this.cache != null) {
+                final V cached = this.cache.get(arrayKey);
+                if (cached != null) return Optional.of(cached);
+            }
+
+            final Write<V> queued = this.pending.get(arrayKey);
+            if (queued != null) return Optional.ofNullable(queued.value());
+
             final long offset = this.offsets.getLong(arrayKey);
             if (offset == -1L) return Optional.empty();
 
             // [keyLen(4)][keyBytes][flag(1)][valueLen(4)][valueBytes]
-            final long valueLenPos = offset + 4 + keyBytes.length + 1;
+            final long valueLenPos = offset + 4 + arrayKey.data.length + 1;
             final int valueLen = readInt(this.file, valueLenPos);
 
             final ByteBuffer valueBuf = ByteBuffer.allocate(valueLen);
             readFully(this.file, valueBuf, valueLenPos + 4);
 
             final V value = this.valueEncoder.decode(valueBuf.array());
+            // No save or delete runs while the read lock is held, so this is still the latest value.
             if (this.cache != null) this.cache.put(arrayKey, value);
             return Optional.of(value);
         } catch (IOException ex) {
-            throw new RuntimeException(ex);
+            throw new UncheckedIOException(ex);
         } finally {
-            this.compactLock.readLock().unlock();
+            this.lock.readLock().unlock();
         }
     }
 
     @Override
     public void unloadFromCache(@NotNull K key) {
         if (this.cache == null) return;
-        this.cache.remove(new ByteArrayKey(this.keyEncoder.encode(key)));
+        this.cache.remove(this.keyOf(key));
     }
 
     @Override
     public void close() {
+        this.lock.writeLock().lock();
         try {
-            //noinspection unchecked
-            this.writeQueue.put((WriteTask<V>) POISON);
-            this.writerThread.join();
-            this.file.close();
-        } catch (InterruptedException | IOException ex) {
-            throw new RuntimeException(ex);
+            if (this.closed) return;
+            this.closed = true;
+            this.writeQueue.add(Stop.INSTANCE);
         } finally {
-            this.releaseFileLock();
+            this.lock.writeLock().unlock();
+        }
+
+        // Waits even if interrupted: closing the file under the writer would lose the queued writes.
+        boolean interrupted = false;
+        while (true) {
+            try {
+                this.writerThread.join();
+                break;
+            } catch (InterruptedException ex) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) Thread.currentThread().interrupt();
+
+        try {
+            this.file.close();
+        } catch (IOException ex) {
+            throw new UncheckedIOException("Can't close " + this.path, ex);
+        }
+
+        final Throwable failure = this.failure;
+        if (failure != null) {
+            throw new IllegalStateException("The writer of " + this.path
+                    + " had stopped; the writes queued since then weren't saved", failure);
         }
     }
 
@@ -254,82 +306,107 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     // Writer loop
     // -------------------------------------------------------------------------
 
-    private void putTask(@NotNull WriteTask<V> task) {
+    private ByteArrayKey keyOf(K key) {
+        return new ByteArrayKey(this.keyEncoder.encode(key));
+    }
+
+    private void enqueue(@NotNull Write<V> write) {
+        this.lock.writeLock().lock();
         try {
-            this.writeQueue.put(task);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(ex);
+            if (this.closed) throw new IllegalStateException("The repository is closed: " + this.path);
+            if (this.failure != null) {
+                throw new IllegalStateException("The writer of " + this.path
+                        + " stopped, so writes are no longer saved", this.failure);
+            }
+
+            this.pending.put(write.key(), write);
+            if (this.cache != null) {
+                if (write.value() != null) this.cache.put(write.key(), write.value());
+                else this.cache.remove(write.key());
+            }
+            // Queued under the lock too, so the writer gets the writes of a key in the order
+            // they became pending.
+            this.writeQueue.add(write);
+        } finally {
+            this.lock.writeLock().unlock();
         }
     }
 
     private void writerLoop() {
-        outer:
-        while (true) {
-            try {
-                final WriteTask<V> first = this.writeQueue.take();
-                if (first == POISON) return;
-                this.doWrite(first);
-
-                int taken = 1;
-                WriteTask<V> next;
-                while (taken < this.config.batchSize() && (next = this.writeQueue.poll()) != null) {
-                    if (next == POISON) break outer;
-                    this.doWrite(next);
-                    taken++;
+        try {
+            while (true) {
+                Task task = this.writeQueue.take();
+                int written = 0;
+                while (task instanceof Write<?> write) {
+                    this.doWrite(write);
+                    if (++written == this.config.batchSize()) break;
+                    task = this.writeQueue.poll();
                 }
+                if (task == Stop.INSTANCE) return;
                 this.checkAndCompact();
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                return;
             }
+        } catch (Throwable th) {
+            this.stopWriting(th);
         }
+    }
+
+    // Later writes are refused: they would only pile up in the queue, unsaved.
+    private void stopWriting(@NotNull Throwable cause) {
+        this.lock.writeLock().lock();
+        try {
+            this.failure = cause;
+            this.writeQueue.clear();
+        } finally {
+            this.lock.writeLock().unlock();
+        }
+        LOGGER.log(System.Logger.Level.ERROR, "The writer of " + this.path + " stopped; later writes are refused", cause);
     }
 
     // -------------------------------------------------------------------------
     // Write logic
     // -------------------------------------------------------------------------
 
-    private void doWrite(@NotNull WriteTask<V> task) {
-        final byte[] keyBytes = task.keyBytes();
-        final V value = task.value();
-        final boolean isTombstone = (value == null);
+    private void doWrite(@NotNull Write<?> write) throws IOException {
+        final byte[] keyBytes = write.key().data;
+        final byte[] valueBytes = write.bytes();
+        final boolean isTombstone = (valueBytes == null);
 
+        final ByteBuffer record;
         if (isTombstone) {
             // [keyLen(4)][keyBytes][flag=1(1)]
-            final ByteBuffer header = ByteBuffer.allocate(4 + keyBytes.length + 1);
-            header.putInt(keyBytes.length);
-            header.put(keyBytes);
-            header.put(FLAG_DELETED);
-            header.flip();
-
-            final long recordOffset = this.end;
-            writeBytes(this.file, header, recordOffset);
-            this.end += header.capacity();
-
-            final long oldOffset = this.offsets.removeLong(task.arrayKey());
-            if (oldOffset != -1L) this.deadBytes += sizeOfLiveRecord(keyBytes.length, oldOffset);
-            this.deadBytes += header.capacity();
+            record = ByteBuffer.allocate(4 + keyBytes.length + 1)
+                    .putInt(keyBytes.length)
+                    .put(keyBytes)
+                    .put(FLAG_DELETED);
         } else {
-            final byte[] valueBytes = this.valueEncoder.encode(value);
-
-            // [keyLen(4)][keyBytes][flag=0(1)][valueLen(4)]
-            final ByteBuffer header = ByteBuffer.allocate(4 + keyBytes.length + 1 + 4);
-            header.putInt(keyBytes.length);
-            header.put(keyBytes);
-            header.put(FLAG_ALIVE);
-            header.putInt(valueBytes.length);
-            header.flip();
-
-            final long recordOffset = this.end;
-            writeBytes(this.file, header, recordOffset);
-            writeBytes(this.file, ByteBuffer.wrap(valueBytes), recordOffset + header.capacity());
-            this.end += header.capacity() + valueBytes.length;
-
-            final long oldOffset = this.offsets.getLong(task.arrayKey());
-            if (oldOffset != -1L) this.deadBytes += sizeOfLiveRecord(keyBytes.length, oldOffset);
-            this.offsets.put(task.arrayKey(), recordOffset);
+            // [keyLen(4)][keyBytes][flag=0(1)][valueLen(4)][valueBytes]
+            record = ByteBuffer.allocate(4 + keyBytes.length + 1 + 4 + valueBytes.length)
+                    .putInt(keyBytes.length)
+                    .put(keyBytes)
+                    .put(FLAG_ALIVE)
+                    .putInt(valueBytes.length)
+                    .put(valueBytes);
         }
+        record.flip();
+
+        final long recordOffset = this.end;
+        writeBytes(this.file, record, recordOffset);
+        this.end += record.limit();
+
+        final long oldOffset;
+        this.lock.writeLock().lock();
+        try {
+            oldOffset = isTombstone
+                    ? this.offsets.removeLong(write.key())
+                    : this.offsets.put(write.key(), recordOffset);
+            // A newer write of the key stays pending until it is appended too.
+            if (this.pending.get(write.key()) == write) this.pending.remove(write.key());
+        } finally {
+            this.lock.writeLock().unlock();
+        }
+
+        if (oldOffset != -1L) this.deadBytes += sizeOfLiveRecord(keyBytes.length, oldOffset);
+        if (isTombstone) this.deadBytes += record.limit();
     }
 
     private long sizeOfLiveRecord(int keyLen, long offset) {
@@ -358,6 +435,7 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
         newOffsets.defaultReturnValue(-1L);
         long newEnd = 0;
 
+        // The writer is the only thread that changes the index, so it reads it here without the lock.
         try (FileChannel temp = openChannel(tempPath)) {
             for (final Object2LongMap.Entry<ByteArrayKey> entry : this.offsets.object2LongEntrySet()) {
                 final ByteArrayKey arrayKey = entry.getKey();
@@ -386,26 +464,26 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
                 newOffsets.put(arrayKey, recordStart);
             }
         } catch (IOException ex) {
-            throw new RuntimeException("Compaction failed while writing temp file", ex);
+            throw new UncheckedIOException("Compaction failed while writing temp file", ex);
         }
 
-        this.compactLock.writeLock().lock();
+        this.lock.writeLock().lock();
         try {
             this.file.close();
             Files.move(tempPath, this.path,
                     StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE);
             this.file = openChannel(this.path);
-            this.acquireFileLock();
+            this.lockFile();
 
             this.offsets.clear();
             this.offsets.putAll(newOffsets);
             this.end = newEnd;
             this.deadBytes = 0;
         } catch (IOException ex) {
-            throw new RuntimeException("Compaction failed while swapping files", ex);
+            throw new UncheckedIOException("Compaction failed while swapping files", ex);
         } finally {
-            this.compactLock.writeLock().unlock();
+            this.lock.writeLock().unlock();
         }
     }
 
@@ -422,8 +500,8 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
             final ByteBuffer keyBuf = ByteBuffer.allocate(keyLen);
             readFully(this.file, keyBuf, pos + 4);
 
-            final ByteBuffer flagBuf = FLAG_BUF.get();
-            readSmall(this.file, flagBuf, pos + 4 + keyLen);
+            final ByteBuffer flagBuf = ByteBuffer.allocate(1);
+            readFully(this.file, flagBuf, pos + 4 + keyLen);
             final byte flag = flagBuf.get();
 
             final ByteArrayKey arrayKey = new ByteArrayKey(keyBuf.array());
@@ -445,20 +523,19 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     // File lock
     // -------------------------------------------------------------------------
 
-    private void acquireFileLock() throws IOException {
-        this.fileLock = this.file.tryLock(0, 1, false);
-        if (this.fileLock == null) {
+    // Held until the channel is closed. Within one JVM tryLock throws
+    // OverlappingFileLockException, an IllegalStateException, instead of returning null.
+    private void lockFile() throws IOException {
+        if (this.file.tryLock(0, 1, false) == null) {
             throw new IllegalStateException("File is already in use: " + this.path);
         }
     }
 
-    private void releaseFileLock() {
-        if (this.fileLock != null && this.fileLock.isValid()) {
-            try {
-                this.fileLock.release();
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
+    private void closeQuietly(@NotNull Throwable cause) {
+        try {
+            this.file.close();
+        } catch (IOException ex) {
+            cause.addSuppressed(ex);
         }
     }
 
@@ -476,26 +553,8 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
 
     private static int readInt(FileChannel ch, long pos) throws IOException {
         final ByteBuffer buf = INT_BUF.get();
-        buf.clear();
-        long p = pos;
-        while (buf.hasRemaining()) {
-            final int n = ch.read(buf, p);
-            if (n < 0) throw new IOException("Unexpected end of file at position " + p);
-            p += n;
-        }
-        buf.flip();
+        readFully(ch, buf, pos);
         return buf.getInt();
-    }
-
-    private static void readSmall(FileChannel ch, ByteBuffer buf, long pos) throws IOException {
-        buf.clear();
-        long p = pos;
-        while (buf.hasRemaining()) {
-            final int n = ch.read(buf, p);
-            if (n < 0) throw new IOException("Unexpected end of file at position " + p);
-            p += n;
-        }
-        buf.flip();
     }
 
     private static void readFully(FileChannel ch, ByteBuffer buf, long pos) throws IOException {
@@ -509,14 +568,10 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
         buf.flip();
     }
 
-    private static void writeBytes(FileChannel ch, ByteBuffer buf, long pos) {
-        try {
-            long p = pos;
-            while (buf.hasRemaining()) {
-                p += ch.write(buf, p);
-            }
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
+    private static void writeBytes(FileChannel ch, ByteBuffer buf, long pos) throws IOException {
+        long p = pos;
+        while (buf.hasRemaining()) {
+            p += ch.write(buf, p);
         }
     }
 

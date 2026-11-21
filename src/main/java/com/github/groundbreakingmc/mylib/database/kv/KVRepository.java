@@ -23,8 +23,12 @@ import java.util.function.Function;
  * }</pre>
  *
  * <p>Writes are asynchronous — {@link #save} and {@link #delete} return immediately
- * and are flushed to disk by a background writer thread. Reads always reflect the
- * latest saved state visible to the in-memory index.
+ * and a background writer thread appends them to the file in order. {@link #load} sees
+ * every save and delete made before it, whether the writer has appended it yet or not.
+ * Every method is safe to call from any thread.
+ *
+ * <p>If the writer can't write, such as when the disk is full, it stops and logs the error:
+ * later saves, deletes and {@link #close()} throw {@link IllegalStateException} with the cause.
  *
  * <p>Only one instance may open the same file at a time. Attempting to open an
  * already-locked file throws {@link IllegalStateException}.
@@ -49,22 +53,24 @@ public interface KVRepository<K, V> {
      * Saves the given key-value pair.
      *
      * <p>If a value for the key already exists it will be overwritten.
-     * The write is queued and flushed asynchronously by the background writer thread.
-     * If a cache is enabled, the value is immediately visible via {@link #load}.
+     * The value is encoded during this call, so later changes of the object don't reach
+     * the file, and {@link #load} returns it at once; the background writer thread
+     * appends it to the file later.
      *
      * @param key   the key, not null
      * @param value the value, not null
+     * @throws IllegalStateException if the repository is closed or its writer has stopped
      */
     void save(@NotNull K key, @NotNull V value);
 
     /**
      * Deletes the value associated with the given key.
      *
-     * <p>A tombstone record is appended to the file and the key is removed
-     * from the in-memory index and cache immediately. The on-disk tombstone
-     * is cleaned up during the next compaction.
+     * <p>{@link #load} returns empty at once; the background writer thread appends
+     * a tombstone record to the file, which the next compaction cleans up.
      *
      * @param key the key to delete, not null
+     * @throws IllegalStateException if the repository is closed or its writer has stopped
      */
     void delete(@NotNull K key);
 
@@ -76,6 +82,7 @@ public interface KVRepository<K, V> {
      *
      * @param key the key to look up, not null
      * @return an {@link Optional} containing the value, or empty if not found
+     * @throws IllegalStateException if the repository is closed
      */
     Optional<V> load(@NotNull K key);
 
@@ -93,7 +100,10 @@ public interface KVRepository<K, V> {
      * Flushes all pending writes and closes the underlying file.
      *
      * <p>Blocks until the background writer thread finishes processing all
-     * queued tasks. After this call the repository must not be used.
+     * queued tasks, even if the calling thread is interrupted. After this call
+     * the other methods throw {@link IllegalStateException}; closing again does nothing.
+     *
+     * @throws IllegalStateException if the writer had stopped, so writes queued since then weren't saved
      */
     void close();
 

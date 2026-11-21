@@ -226,6 +226,73 @@ class DiskRepositoryTest {
     }
 
     // -------------------------------------------------------------------------
+    // Visibility of queued writes
+    // -------------------------------------------------------------------------
+
+    @Test
+    void loadSeesQueuedWritesWithoutCache(@TempDir Path dir) {
+        var repo = open(dir);
+        repo.save("key", "first");
+        assertEquals(Optional.of("first"), repo.load("key"));
+        repo.save("key", "second");
+        assertEquals(Optional.of("second"), repo.load("key"));
+        repo.delete("key");
+        assertEquals(Optional.empty(), repo.load("key"));
+        repo.close();
+    }
+
+    @Test
+    void deletedValueDoesNotReturnToCache(@TempDir Path dir) {
+        var repo = open(dir, RepositoryConfig.withCache());
+        repo.save("key", "value");
+        repo.close();
+
+        var repo2 = open(dir, RepositoryConfig.withCache());
+        repo2.delete("key");
+        // A load right after the delete must not read the old record and cache it again.
+        for (int i = 0; i < 100; i++) {
+            assertEquals(Optional.empty(), repo2.load("key"));
+        }
+        repo2.close();
+
+        var repo3 = open(dir);
+        assertEquals(Optional.empty(), repo3.load("key"));
+        repo3.close();
+    }
+
+    @Test
+    void encoderErrorReachesCallerAndWriterKeepsWorking(@TempDir Path dir) {
+        var repo = KVRepository.<String, String>builder()
+                .path(dir.resolve("test.db"))
+                .keyEncoder(STRING_ENCODER)
+                .valueEncoder(
+                        value -> {
+                            if (value.equals("broken")) throw new IllegalArgumentException("can't encode");
+                            return value.getBytes(StandardCharsets.UTF_8);
+                        },
+                        bytes -> new String(bytes, StandardCharsets.UTF_8))
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> repo.save("key", "broken"));
+        repo.save("key", "fine");
+        repo.close();
+
+        var repo2 = open(dir);
+        assertEquals(Optional.of("fine"), repo2.load("key"));
+        repo2.close();
+    }
+
+    @Test
+    void callsAfterCloseThrow(@TempDir Path dir) {
+        var repo = open(dir);
+        repo.close();
+        assertThrows(IllegalStateException.class, () -> repo.save("key", "value"));
+        assertThrows(IllegalStateException.class, () -> repo.delete("key"));
+        assertThrows(IllegalStateException.class, () -> repo.load("key"));
+        assertDoesNotThrow(repo::close);
+    }
+
+    // -------------------------------------------------------------------------
     // File lock
     // -------------------------------------------------------------------------
 

@@ -14,8 +14,8 @@ package com.github.groundbreakingmc.mylib.database.kv;
  * );
  * }</pre>
  *
- * @param useCache     whether to keep recently accessed values in memory.
- *                     Eliminates disk reads for hot keys at the cost of heap usage.
+ * @param useCache     whether to keep saved and loaded values in memory until
+ *                     {@link KVRepository#unloadFromCache}. Eliminates disk reads for them at the cost of heap usage.
  * @param batchSize    maximum number of write tasks processed in a single writer loop
  *                     iteration. Higher values improve throughput under heavy write load
  *                     at the cost of slightly increased latency per individual write.
