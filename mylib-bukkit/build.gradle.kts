@@ -5,9 +5,6 @@ plugins {
     id("me.champeau.jmh") version "0.7.3"
 }
 
-group = "com.github.groundbreakingmc"
-version = "1.0-SNAPSHOT"
-
 // The plugin jar below takes the classes of mylib-kv, so that project is configured first.
 evaluationDependsOn(":mylib-kv")
 
@@ -177,7 +174,7 @@ publishing {
             from(components["java"])
 
             groupId = project.group.toString()
-            artifactId = "mylib"
+            artifactId = "mylib-bukkit"
             version = project.version.toString()
 
             pom {

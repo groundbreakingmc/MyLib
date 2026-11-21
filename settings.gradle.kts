@@ -1,3 +1,6 @@
 rootProject.name = "MyLib"
 
-include("mylib-kv")
+include(
+    "mylib-kv",
+    "mylib-bukkit",
+)

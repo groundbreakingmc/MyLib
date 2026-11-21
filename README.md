@@ -80,8 +80,8 @@ Replace `VERSION` with the latest release/tag, `commit-hash` or `main-SNAPSHOT` 
 
 ```xml
 <dependency>
-    <groupId>com.github.groundbreakingmc</groupId>
-    <artifactId>MyLib</artifactId>
+    <groupId>com.github.groundbreakingmc.MyLib</groupId>
+    <artifactId>mylib-bukkit</artifactId>
     <version>VERSION</version>
     <scope>provided</scope>
 </dependency>
@@ -92,7 +92,7 @@ Replace `VERSION` with the latest release/tag, `commit-hash` or `main-SNAPSHOT` 
 <summary><strong>Gradle (Groovy)</strong></summary>
 
 ```groovy
-implementation 'com.github.groundbreakingmc:MyLib:VERSION'
+implementation 'com.github.groundbreakingmc.MyLib:mylib-bukkit:VERSION'
 ```
 </details>
 
@@ -100,13 +100,18 @@ implementation 'com.github.groundbreakingmc:MyLib:VERSION'
 <summary><strong>Gradle (Kotlin DSL)</strong></summary>
 
 ```kotlin
-implementation("com.github.groundbreakingmc:MyLib:VERSION")
+implementation("com.github.groundbreakingmc.MyLib:mylib-bukkit:VERSION")
 ```
 </details>
 
-#### 🗄️ Only the key-value store
+#### 🗂️ Modules without Bukkit
 
-The disk-backed key-value store (`KVRepository`) doesn't need Bukkit and is also published alone:
+`mylib-bukkit` already includes the modules below. They don't need Bukkit, so they can also be added alone,
+for example to a Velocity plugin:
+
+| Module     | Contents                                     |
+|------------|----------------------------------------------|
+| `mylib-kv` | Disk-backed key-value store (`KVRepository`) |
 
 ```kotlin
 implementation("com.github.groundbreakingmc.MyLib:mylib-kv:VERSION")
@@ -161,8 +166,8 @@ To avoid classpath conflicts and make your plugin standalone, it's recommended t
 
     <dependencies>
         <dependency>
-            <groupId>com.github.groundbreakingmc</groupId>
-            <artifactId>MyLib</artifactId>
+            <groupId>com.github.groundbreakingmc.MyLib</groupId>
+            <artifactId>mylib-bukkit</artifactId>
             <version>VERSION</version>
             <scope>compile</scope>
         </dependency>
@@ -181,7 +186,7 @@ plugins {
 }
 
 dependencies {
-    implementation 'com.github.groundbreakingmc:MyLib:VERSION'
+    implementation 'com.github.groundbreakingmc.MyLib:mylib-bukkit:VERSION'
 }
 
 shadowJar {
@@ -199,7 +204,7 @@ plugins {
 }
 
 dependencies {
-    implementation("com.github.groundbreakingmc:MyLib:VERSION")
+    implementation("com.github.groundbreakingmc.MyLib:mylib-bukkit:VERSION")
 }
 
 tasks {
