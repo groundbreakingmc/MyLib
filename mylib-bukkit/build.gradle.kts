@@ -15,6 +15,7 @@ repositories {
 dependencies {
     // The modules without Bukkit, published alone too.
     api(project(":mylib-eventbus"))
+    api(project(":mylib-sql"))
     api(project(":mylib-kv"))
 
     // Minecraft
@@ -45,7 +46,6 @@ dependencies {
     compileOnly(libs.guava)
     compileOnly(libs.fastutil)
     testImplementation(libs.fastutil)
-    compileOnly(libs.hikaricp)
     compileOnly(libs.typesafe.config)
 
     // Annotations

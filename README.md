@@ -112,6 +112,7 @@ for example to a Velocity plugin:
 | Module            | Contents                                                               |
 |-------------------|------------------------------------------------------------------------|
 | `mylib-eventbus`  | Synchronous event bus with priorities (`EventBus`)                     |
+| `mylib-sql`       | SQL database with HikariCP and query builders (`Database`)             |
 | `mylib-kv`        | Disk-backed key-value store (`KVRepository`)                           |
 
 ```kotlin
