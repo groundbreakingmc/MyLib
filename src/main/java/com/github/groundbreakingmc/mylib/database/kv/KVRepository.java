@@ -30,6 +30,11 @@ import java.util.function.Function;
  * <p>If the writer can't write, such as when the disk is full, it stops and logs the error:
  * later saves, deletes and {@link #close()} throw {@link IllegalStateException} with the cause.
  *
+ * <p>Each record carries a checksum. If the file doesn't end with a whole record, such as after
+ * a crash during a write, it is read up to its last whole record: the rest is moved to a
+ * {@code .corrupt-<time>} file next to it and a warning is logged. Files written by earlier
+ * versions of this class are converted when opened.
+ *
  * <p>Only one instance may open the same file at a time. Attempting to open an
  * already-locked file throws {@link IllegalStateException}.
  *
@@ -82,7 +87,8 @@ public interface KVRepository<K, V> {
      *
      * @param key the key to look up, not null
      * @return an {@link Optional} containing the value, or empty if not found
-     * @throws IllegalStateException if the repository is closed
+     * @throws IllegalStateException       if the repository is closed
+     * @throws java.io.UncheckedIOException if the record can't be read or doesn't match its checksum
      */
     Optional<V> load(@NotNull K key);
 
@@ -195,7 +201,8 @@ public interface KVRepository<K, V> {
          *
          * @return a ready-to-use {@link KVRepository}
          * @throws NullPointerException  if path, keyEncoder, or valueEncoder was not set
-         * @throws IllegalStateException if the target file is already locked by another instance
+         * @throws IllegalStateException if the target file is already locked by another instance,
+         *                               or has a format version newer than this library reads
          * @throws RuntimeException      if the file cannot be opened or read
          */
         KVRepository<K, V> build();

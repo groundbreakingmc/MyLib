@@ -3,9 +3,13 @@ package com.github.groundbreakingmc.mylib.database.kv;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
@@ -451,6 +455,111 @@ class DiskRepositoryTest {
             assertEquals(Optional.of("updated-" + i), repo2.load("key-" + i));
         }
         repo2.close();
+    }
+
+    // -------------------------------------------------------------------------
+    // Damaged files and the first format
+    // -------------------------------------------------------------------------
+
+    @Test
+    void writeCutOffByCrashIsMovedAside(@TempDir Path dir) throws Exception {
+        var repo = open(dir);
+        repo.save("a", "1");
+        repo.save("b", "2");
+        repo.close();
+
+        // The start of a record whose write a crash cut off.
+        Files.write(dir.resolve("test.db"), new byte[]{0, 0, 0, 0, 0, 0, 0}, StandardOpenOption.APPEND);
+
+        var repo2 = open(dir);
+        assertEquals(Optional.of("1"), repo2.load("a"));
+        assertEquals(Optional.of("2"), repo2.load("b"));
+        repo2.save("c", "3");
+        repo2.close();
+        assertTrue(hasCorruptFile(dir));
+
+        var repo3 = open(dir);
+        assertEquals(Optional.of("3"), repo3.load("c"));
+        repo3.close();
+    }
+
+    @Test
+    void recordNotMatchingItsChecksumIsCutOff(@TempDir Path dir) throws Exception {
+        var repo = open(dir);
+        repo.save("a", "1");
+        repo.save("b", "2");
+        repo.close();
+
+        // The last byte belongs to the value of "b".
+        final Path file = dir.resolve("test.db");
+        final byte[] bytes = Files.readAllBytes(file);
+        bytes[bytes.length - 1] ^= 1;
+        Files.write(file, bytes);
+
+        var repo2 = open(dir);
+        assertEquals(Optional.of("1"), repo2.load("a"));
+        assertEquals(Optional.empty(), repo2.load("b"));
+        repo2.close();
+        assertTrue(hasCorruptFile(dir));
+    }
+
+    @Test
+    void fileOfFirstFormatIsConverted(@TempDir Path dir) throws Exception {
+        final var out = new ByteArrayOutputStream();
+        out.write(firstFormatValue("a", "1"));
+        out.write(firstFormatValue("b", "2"));
+        out.write(firstFormatTombstone("b"));
+        out.write(firstFormatValue("c", "3"));
+        out.write(firstFormatValue("a", "4"));
+        out.write(new byte[]{0, 0, 0}); // a write cut off by a crash
+        Files.write(dir.resolve("test.db"), out.toByteArray());
+
+        var repo = open(dir);
+        assertEquals(Optional.of("4"), repo.load("a"));
+        assertEquals(Optional.empty(), repo.load("b"));
+        assertEquals(Optional.of("3"), repo.load("c"));
+        repo.close();
+
+        final byte[] magic = Arrays.copyOf(Files.readAllBytes(dir.resolve("test.db")), 4);
+        assertArrayEquals("MLKV".getBytes(StandardCharsets.US_ASCII), magic);
+
+        var repo2 = open(dir);
+        assertEquals(Optional.of("4"), repo2.load("a"));
+        assertEquals(Optional.of("3"), repo2.load("c"));
+        repo2.close();
+    }
+
+    @Test
+    void newerFormatVersionIsRefused(@TempDir Path dir) throws Exception {
+        final byte[] header = ByteBuffer.allocate(8)
+                .put("MLKV".getBytes(StandardCharsets.US_ASCII))
+                .putInt(2)
+                .array();
+        Files.write(dir.resolve("test.db"), header);
+        assertThrows(IllegalStateException.class, () -> open(dir));
+    }
+
+    private static boolean hasCorruptFile(Path dir) throws IOException {
+        try (var files = Files.list(dir)) {
+            return files.anyMatch(file -> file.getFileName().toString().startsWith("test.db.corrupt-"));
+        }
+    }
+
+    // [keyLen(4)][keyBytes][flag=0(1)][valueLen(4)][valueBytes]
+    private static byte[] firstFormatValue(String key, String value) {
+        final byte[] k = key.getBytes(StandardCharsets.UTF_8);
+        final byte[] v = value.getBytes(StandardCharsets.UTF_8);
+        return ByteBuffer.allocate(4 + k.length + 1 + 4 + v.length)
+                .putInt(k.length).put(k).put((byte) 0).putInt(v.length).put(v)
+                .array();
+    }
+
+    // [keyLen(4)][keyBytes][flag=1(1)]
+    private static byte[] firstFormatTombstone(String key) {
+        final byte[] k = key.getBytes(StandardCharsets.UTF_8);
+        return ByteBuffer.allocate(4 + k.length + 1)
+                .putInt(k.length).put(k).put((byte) 1)
+                .array();
     }
 
     // -------------------------------------------------------------------------

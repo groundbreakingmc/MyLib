@@ -4,9 +4,12 @@ import it.unimi.dsi.fastutil.objects.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,17 +24,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.zip.CRC32C;
 
 /**
  * Disk-backed key-value store using append-only writes (Bitcask model).
  * <p>
- * Record format (alive):
- * [keyLen(4)][keyBytes][flag=0(1)][valueLen(4)][valueBytes]
+ * The file starts with a header, {@code [magic "MLKV"(4)][version(4)]}, followed by records:
+ * <pre>
+ * [crc(4)][flag(1)][keyLen(4)][valueLen(4)][keyBytes][valueBytes]
+ * </pre>
+ * {@code crc} is the CRC-32C of the rest of the record; a tombstone has flag 1 and no value.
+ * Opening the file reads it up to the first record that isn't whole or doesn't match its
+ * checksum, such as one cut off by a crash, and moves the rest aside.
  * <p>
- * Record format (tombstone):
- * [keyLen(4)][keyBytes][flag=1(1)]
- * <p>
- * Callers encode values and queue writes; one writer thread appends them, updates the index and
+ * Callers encode records and queue them; one writer thread appends them, updates the index and
  * compacts the file. The index, the writes not appended yet and the cache change only under the
  * write lock, so a reader sees either a write still in the queue or the index entry it made.
  */
@@ -41,8 +47,16 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     // Constants
     // -------------------------------------------------------------------------
 
+    private static final int MAGIC = 0x4D4C4B56; // "MLKV"
+    private static final int VERSION = 1;
+    // [magic(4)][version(4)]
+    private static final int FILE_HEADER_SIZE = 8;
+    // [crc(4)][flag(1)][keyLen(4)][valueLen(4)]
+    private static final int RECORD_HEADER_SIZE = 13;
+
     private static final byte FLAG_ALIVE = 0;
     private static final byte FLAG_DELETED = 1;
+    private static final byte[] NO_VALUE = new byte[0];
 
     // The ratio alone would rewrite a small file after almost every batch, syncing it each time.
     private static final long MIN_RATIO_DEAD_BYTES = 64 * 1024;
@@ -101,14 +115,30 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     }
 
     /**
-     * A save, or a delete if {@code bytes} is {@code null}. The value is encoded on the caller's
-     * thread; the object stays for reads until the writer appends it.
+     * A save, or a delete if {@code value} is {@code null}, with its record encoded on the
+     * caller's thread. The value stays for reads until the writer appends the record.
      */
-    private record Write<V>(ByteArrayKey key, @Nullable V value, byte @Nullable [] bytes) implements Task {
+    private record Write<V>(ByteArrayKey key, @Nullable V value, ByteBuffer record) implements Task {
+
+        boolean isDelete() {
+            return this.value == null;
+        }
     }
 
     private enum Stop implements Task {
         INSTANCE
+    }
+
+    /**
+     * A record read while the file opens.
+     */
+    private record Scanned(ByteArrayKey key, boolean alive, long size) {
+    }
+
+    /**
+     * Where a value of a first-format file lies.
+     */
+    private record ValueSpan(long offset, int length) {
     }
 
     static final class ByteArrayKey {
@@ -138,9 +168,6 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     // Fields
     // -------------------------------------------------------------------------
 
-    private static final ThreadLocal<ByteBuffer> INT_BUF =
-            ThreadLocal.withInitial(() -> ByteBuffer.allocate(4));
-
     private final Path path;
     private final KeyValueEncoder<K> keyEncoder;
     private final KeyValueEncoder<V> valueEncoder;
@@ -148,8 +175,9 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
 
     // Replaced by compaction under the write lock; the file lock lasts until the channel closes.
     private FileChannel file;
+    // Written by the writer thread; readers check the length of a record against it.
+    private volatile long end;
     // Used by the writer thread only.
-    private long end;
     private long deadBytes;
 
     private final BlockingQueue<Task> writeQueue = new LinkedBlockingQueue<>();
@@ -193,7 +221,7 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
             this.lockFile();
             // Left by a compaction interrupted before the swap; the data file is still whole.
             Files.deleteIfExists(this.tempPath());
-            this.loadOffsets();
+            this.loadFile();
         } catch (IOException ex) {
             this.closeQuietly(ex);
             throw new UncheckedIOException("Can't read " + path, ex);
@@ -211,15 +239,17 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
 
     @Override
     public void save(@NotNull K key, @NotNull V value) {
+        final ByteArrayKey arrayKey = this.keyOf(key);
         // Encoded on the caller's thread: the file gets the value as it is at this call,
         // and an encoder error is thrown to the caller and can't stop the writer.
-        final byte[] bytes = this.valueEncoder.encode(value);
-        this.enqueue(new Write<>(this.keyOf(key), value, bytes));
+        final ByteBuffer record = encodeRecord(FLAG_ALIVE, arrayKey.data, this.valueEncoder.encode(value));
+        this.enqueue(new Write<>(arrayKey, value, record));
     }
 
     @Override
     public void delete(@NotNull K key) {
-        this.enqueue(new Write<>(this.keyOf(key), null, null));
+        final ByteArrayKey arrayKey = this.keyOf(key);
+        this.enqueue(new Write<>(arrayKey, null, encodeRecord(FLAG_DELETED, arrayKey.data, NO_VALUE)));
     }
 
     @Override
@@ -241,14 +271,7 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
             final long offset = this.offsets.getLong(arrayKey);
             if (offset == -1L) return Optional.empty();
 
-            // [keyLen(4)][keyBytes][flag(1)][valueLen(4)][valueBytes]
-            final long valueLenPos = offset + 4 + arrayKey.data.length + 1;
-            final int valueLen = readInt(this.file, valueLenPos);
-
-            final ByteBuffer valueBuf = ByteBuffer.allocate(valueLen);
-            readFully(this.file, valueBuf, valueLenPos + 4);
-
-            final V value = this.valueEncoder.decode(valueBuf.array());
+            final V value = this.valueEncoder.decode(this.readValue(offset, arrayKey));
             // No save or delete runs while the read lock is held, so this is still the latest value.
             if (this.cache != null) this.cache.put(arrayKey, value);
             return Optional.of(value);
@@ -320,8 +343,8 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
 
             this.pending.put(write.key(), write);
             if (this.cache != null) {
-                if (write.value() != null) this.cache.put(write.key(), write.value());
-                else this.cache.remove(write.key());
+                if (write.isDelete()) this.cache.remove(write.key());
+                else this.cache.put(write.key(), write.value());
             }
             // Queued under the lock too, so the writer gets the writes of a key in the order
             // they became pending.
@@ -337,7 +360,7 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
                 Task task = this.writeQueue.take();
                 int written = 0;
                 while (task instanceof Write<?> write) {
-                    this.doWrite(write);
+                    this.append(write);
                     if (++written == this.config.batchSize()) break;
                     task = this.writeQueue.poll();
                 }
@@ -362,55 +385,79 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     }
 
     // -------------------------------------------------------------------------
-    // Write logic
+    // Records
     // -------------------------------------------------------------------------
 
-    private void doWrite(@NotNull Write<?> write) throws IOException {
-        final byte[] keyBytes = write.key().data;
-        final byte[] valueBytes = write.bytes();
-        final boolean isTombstone = (valueBytes == null);
+    // [crc(4)][flag(1)][keyLen(4)][valueLen(4)][keyBytes][valueBytes]
+    private static ByteBuffer encodeRecord(byte flag, byte[] key, byte[] value) {
+        final ByteBuffer record = ByteBuffer.allocate(RECORD_HEADER_SIZE + key.length + value.length);
+        record.position(4);
+        record.put(flag).putInt(key.length).putInt(value.length).put(key).put(value);
 
-        final ByteBuffer record;
-        if (isTombstone) {
-            // [keyLen(4)][keyBytes][flag=1(1)]
-            record = ByteBuffer.allocate(4 + keyBytes.length + 1)
-                    .putInt(keyBytes.length)
-                    .put(keyBytes)
-                    .put(FLAG_DELETED);
-        } else {
-            // [keyLen(4)][keyBytes][flag=0(1)][valueLen(4)][valueBytes]
-            record = ByteBuffer.allocate(4 + keyBytes.length + 1 + 4 + valueBytes.length)
-                    .putInt(keyBytes.length)
-                    .put(keyBytes)
-                    .put(FLAG_ALIVE)
-                    .putInt(valueBytes.length)
-                    .put(valueBytes);
-        }
-        record.flip();
+        final CRC32C crc = new CRC32C();
+        crc.update(record.array(), 4, record.capacity() - 4);
+        record.putInt(0, (int) crc.getValue());
+        return record.flip();
+    }
 
-        final long recordOffset = this.end;
-        writeBytes(this.file, record, recordOffset);
-        this.end += record.limit();
+    private void append(@NotNull Write<?> write) throws IOException {
+        final ByteBuffer record = write.record();
+        final int size = record.remaining();
+        final long offset = this.end;
+        writeBytes(this.file, record, offset);
+        this.end = offset + size;
 
         final long oldOffset;
         this.lock.writeLock().lock();
         try {
-            oldOffset = isTombstone
+            oldOffset = write.isDelete()
                     ? this.offsets.removeLong(write.key())
-                    : this.offsets.put(write.key(), recordOffset);
+                    : this.offsets.put(write.key(), offset);
             // A newer write of the key stays pending until it is appended too.
             if (this.pending.get(write.key()) == write) this.pending.remove(write.key());
         } finally {
             this.lock.writeLock().unlock();
         }
 
-        if (oldOffset != -1L) this.deadBytes += this.sizeOfLiveRecord(keyBytes.length, oldOffset);
-        if (isTombstone) this.deadBytes += record.limit();
+        if (oldOffset != -1L) this.deadBytes += this.recordSize(oldOffset, write.key().data.length);
+        if (write.isDelete()) this.deadBytes += size;
     }
 
-    // [keyLen(4)][keyBytes][flag(1)][valueLen(4)][valueBytes]
-    private long sizeOfLiveRecord(int keyLen, long offset) throws IOException {
-        return 4L + keyLen + 1 + 4 + readInt(this.file, offset + 4 + keyLen + 1);
+    // Reads the value of the key's indexed record, checking that the record is whole and is the key's.
+    private byte[] readValue(long offset, @NotNull ByteArrayKey key) throws IOException {
+        final int keyLength = key.data.length;
+        final ByteBuffer head = ByteBuffer.allocate(RECORD_HEADER_SIZE + keyLength);
+        readFully(this.file, head, offset);
+        final int crc = head.getInt();
+        final byte flag = head.get();
+        final int recordKeyLength = head.getInt();
+        final int valueLength = head.getInt();
+
+        // A damaged length mustn't allocate a huge array: the writer appends a record before
+        // indexing it, so a whole record ends within end.
+        if (flag != FLAG_ALIVE || recordKeyLength != keyLength
+                || valueLength < 0 || valueLength > this.end - offset - head.capacity()
+                || !Arrays.equals(head.array(), RECORD_HEADER_SIZE, head.capacity(), key.data, 0, keyLength)) {
+            throw this.damaged(offset);
+        }
+
+        final byte[] value = new byte[valueLength];
+        readFully(this.file, ByteBuffer.wrap(value), offset + head.capacity());
+
+        final CRC32C actual = new CRC32C();
+        actual.update(head.array(), 4, head.capacity() - 4);
+        actual.update(value);
+        if ((int) actual.getValue() != crc) throw this.damaged(offset);
+        return value;
+    }
+
+    private long recordSize(long offset, int keyLength) throws IOException {
+        // valueLen follows crc(4), flag(1) and keyLen(4).
+        return RECORD_HEADER_SIZE + (long) keyLength + readInt(this.file, offset + 9);
+    }
+
+    private IOException damaged(long offset) {
+        return new IOException("The record at offset " + offset + " of " + this.path + " is damaged");
     }
 
     // -------------------------------------------------------------------------
@@ -430,15 +477,15 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
 
         final Object2LongMap<ByteArrayKey> newOffsets = new Object2LongOpenHashMap<>(this.offsets.size());
         newOffsets.defaultReturnValue(-1L);
-        long newEnd = 0;
+        long newEnd = FILE_HEADER_SIZE;
 
-        // Truncated: a temp file left by an interrupted compaction may be longer than this one.
-        try (FileChannel temp = FileChannel.open(tempPath,
-                StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+        try (FileChannel temp = openTemp(tempPath)) {
+            writeAll(temp, fileHeader());
             // The writer is the only thread that changes the index, so it reads it here without the lock.
             for (final Object2LongMap.Entry<ByteArrayKey> entry : this.offsets.object2LongEntrySet()) {
                 final long oldOffset = entry.getLongValue();
-                final long size = this.sizeOfLiveRecord(entry.getKey().data.length, oldOffset);
+                final long size = this.recordSize(oldOffset, entry.getKey().data.length);
+                // Copied with its checksum, so a damaged record stays detectable.
                 transferFully(this.file, oldOffset, size, temp);
                 newOffsets.put(entry.getKey(), newEnd);
                 newEnd += size;
@@ -447,6 +494,11 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
             temp.force(true);
         }
 
+        this.replaceFile(tempPath, newOffsets, newEnd);
+    }
+
+    // Puts a rewritten file in place of the data file; reads wait for the swap under the write lock.
+    private void replaceFile(Path tempPath, Object2LongMap<ByteArrayKey> newOffsets, long newEnd) throws IOException {
         this.lock.writeLock().lock();
         try {
             this.file.close();
@@ -492,32 +544,154 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     // Startup
     // -------------------------------------------------------------------------
 
-    private void loadOffsets() throws IOException {
-        long pos = 0;
+    private void loadFile() throws IOException {
+        final long size = this.file.size();
+        if (size == 0) {
+            writeBytes(this.file, fileHeader(), 0);
+            this.end = FILE_HEADER_SIZE;
+            return;
+        }
+        if (size < FILE_HEADER_SIZE || readInt(this.file, 0) != MAGIC) {
+            this.convertFirstFormat(size);
+            return;
+        }
+        final int version = readInt(this.file, 4);
+        if (version != VERSION) {
+            throw new IllegalStateException(this.path + " has format version " + version
+                    + ", but this version of MyLib reads version " + VERSION);
+        }
+        this.loadRecords(size);
+    }
 
-        while (pos < this.file.size()) {
-            final int keyLen = readInt(this.file, pos);
+    // Builds the index; whatever follows the last whole record is moved aside.
+    private void loadRecords(long size) throws IOException {
+        // Not closed: that would close the channel as well.
+        final DataInputStream in = new DataInputStream(new BufferedInputStream(
+                Channels.newInputStream(this.file.position(FILE_HEADER_SIZE)), 64 * 1024));
+        final byte[] header = new byte[RECORD_HEADER_SIZE];
+        final byte[] chunk = new byte[8 * 1024];
+        final CRC32C crc = new CRC32C();
 
-            final ByteBuffer keyBuf = ByteBuffer.allocate(keyLen);
-            readFully(this.file, keyBuf, pos + 4);
+        long pos = FILE_HEADER_SIZE;
+        while (pos < size) {
+            final Scanned record = scanRecord(in, size - pos, header, chunk, crc);
+            if (record == null) break;
 
-            final ByteBuffer flagBuf = ByteBuffer.allocate(1);
-            readFully(this.file, flagBuf, pos + 4 + keyLen);
-            final byte flag = flagBuf.get();
-
-            final ByteArrayKey arrayKey = new ByteArrayKey(keyBuf.array());
-
-            if (flag == FLAG_DELETED) {
-                this.offsets.removeLong(arrayKey);
-                pos += 4 + keyLen + 1;
-            } else {
-                final int valueLen = readInt(this.file, pos + 4 + keyLen + 1);
-                this.offsets.put(arrayKey, pos);
-                pos += 4 + keyLen + 1 + 4 + valueLen;
-            }
+            final long oldOffset = record.alive()
+                    ? this.offsets.put(record.key(), pos)
+                    : this.offsets.removeLong(record.key());
+            if (oldOffset != -1L) this.deadBytes += this.recordSize(oldOffset, record.key().data.length);
+            if (!record.alive()) this.deadBytes += record.size();
+            pos += record.size();
         }
 
+        if (pos < size) this.cutTail(pos, size);
         this.end = pos;
+    }
+
+    // Reads the next record, or returns null if the bytes left don't hold a whole record matching its checksum.
+    private static @Nullable Scanned scanRecord(DataInputStream in, long left, byte[] header, byte[] chunk, CRC32C crc)
+            throws IOException {
+        if (left < RECORD_HEADER_SIZE) return null;
+        in.readFully(header);
+        final ByteBuffer fields = ByteBuffer.wrap(header);
+        final int storedCrc = fields.getInt();
+        final byte flag = fields.get();
+        final int keyLength = fields.getInt();
+        final int valueLength = fields.getInt();
+        final long size = RECORD_HEADER_SIZE + (long) keyLength + valueLength;
+        if ((flag != FLAG_ALIVE && flag != FLAG_DELETED) || keyLength < 0 || valueLength < 0
+                || (flag == FLAG_DELETED && valueLength != 0) || size > left) {
+            return null;
+        }
+
+        crc.reset();
+        crc.update(header, 4, RECORD_HEADER_SIZE - 4);
+        final byte[] key = new byte[keyLength];
+        in.readFully(key);
+        crc.update(key);
+        // Only checked here: the value is read again when it is loaded.
+        for (int remaining = valueLength; remaining > 0; ) {
+            final int n = Math.min(chunk.length, remaining);
+            in.readFully(chunk, 0, n);
+            crc.update(chunk, 0, n);
+            remaining -= n;
+        }
+        if ((int) crc.getValue() != storedCrc) return null;
+
+        return new Scanned(new ByteArrayKey(key), flag == FLAG_ALIVE, size);
+    }
+
+    // Copies what can't be read into a file next to this one for inspection and cuts it off,
+    // so appends follow whole records. Usually it is a write a crash cut off.
+    private void cutTail(long from, long size) throws IOException {
+        final Path aside = this.path.resolveSibling(this.path.getFileName() + ".corrupt-" + System.currentTimeMillis());
+        try (FileChannel out = FileChannel.open(aside, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+            transferFully(this.file, from, size - from, out);
+            out.force(true);
+        }
+        this.file.truncate(from);
+        this.file.force(true);
+        LOGGER.log(System.Logger.Level.WARNING, this.path + ": " + (size - from) + " bytes from offset " + from
+                + " aren't whole records, probably a write cut off by a crash; moved them to " + aside.getFileName());
+    }
+
+    // The first format had no file header and no checksums: [keyLen(4)][keyBytes][flag(1)]
+    // [valueLen(4)][valueBytes], a tombstone without valueLen and value. Its live records are
+    // written again in the current format.
+    private void convertFirstFormat(long size) throws IOException {
+        final Object2ObjectMap<ByteArrayKey, ValueSpan> live = new Object2ObjectOpenHashMap<>();
+        long pos = 0;
+        while (true) {
+            final long left = size - pos;
+            if (left < 5) break;
+            final int keyLength = readInt(this.file, pos);
+            if (keyLength < 0 || keyLength > left - 5) break;
+
+            final ByteBuffer keyAndFlag = ByteBuffer.allocate(keyLength + 1);
+            readFully(this.file, keyAndFlag, pos + 4);
+            final ByteArrayKey key = new ByteArrayKey(Arrays.copyOf(keyAndFlag.array(), keyLength));
+            final byte flag = keyAndFlag.get(keyLength);
+            if (flag == FLAG_DELETED) {
+                live.remove(key);
+                pos += 5L + keyLength;
+                continue;
+            }
+            if (flag != FLAG_ALIVE || left - 5 - keyLength < 4) break;
+
+            final int valueLength = readInt(this.file, pos + 5 + keyLength);
+            if (valueLength < 0 || valueLength > left - 9 - keyLength) break;
+            live.put(key, new ValueSpan(pos + 9 + keyLength, valueLength));
+            pos += 9L + keyLength + valueLength;
+        }
+        if (pos < size) this.cutTail(pos, size);
+
+        final Path tempPath = this.tempPath();
+        final Object2LongMap<ByteArrayKey> newOffsets = new Object2LongOpenHashMap<>(live.size());
+        newOffsets.defaultReturnValue(-1L);
+        long newEnd = FILE_HEADER_SIZE;
+
+        try (FileChannel temp = openTemp(tempPath)) {
+            writeAll(temp, fileHeader());
+            for (final Map.Entry<ByteArrayKey, ValueSpan> entry : live.entrySet()) {
+                final ValueSpan span = entry.getValue();
+                final ByteBuffer value = ByteBuffer.allocate(span.length());
+                readFully(this.file, value, span.offset());
+                final ByteBuffer record = encodeRecord(FLAG_ALIVE, entry.getKey().data, value.array());
+                newOffsets.put(entry.getKey(), newEnd);
+                newEnd += record.remaining();
+                writeAll(temp, record);
+            }
+            // On the disk before it replaces the only copy of the data.
+            temp.force(true);
+        }
+
+        this.replaceFile(tempPath, newOffsets, newEnd);
+        LOGGER.log(System.Logger.Level.INFO, this.path + ": converted to the format with checksums");
+    }
+
+    private static ByteBuffer fileHeader() {
+        return ByteBuffer.allocate(FILE_HEADER_SIZE).putInt(MAGIC).putInt(VERSION).flip();
     }
 
     // -------------------------------------------------------------------------
@@ -552,8 +726,17 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
         );
     }
 
+    // Truncated: a temp file of an earlier, failed compaction may be longer than the new one.
+    private static FileChannel openTemp(Path path) throws IOException {
+        return FileChannel.open(path,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING
+        );
+    }
+
     private static int readInt(FileChannel ch, long pos) throws IOException {
-        final ByteBuffer buf = INT_BUF.get();
+        final ByteBuffer buf = ByteBuffer.allocate(4);
         readFully(ch, buf, pos);
         return buf.getInt();
     }
@@ -576,12 +759,19 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
         }
     }
 
+    // Writes at the channel's position, for files written from the start.
+    private static void writeAll(FileChannel ch, ByteBuffer buf) throws IOException {
+        while (buf.hasRemaining()) {
+            ch.write(buf);
+        }
+    }
+
     // Appends the range at the destination's position; the kernel copies it without a buffer here.
     private static void transferFully(FileChannel src, long pos, long count, FileChannel dst) throws IOException {
         long done = 0;
         while (done < count) {
             final long n = src.transferTo(pos + done, count - done, dst);
-            if (n <= 0) throw new IOException("Unexpected end of file during compaction at " + (pos + done));
+            if (n <= 0) throw new IOException("Unexpected end of file at position " + (pos + done));
             done += n;
         }
     }
