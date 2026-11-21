@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 /**
@@ -26,6 +27,10 @@ import java.util.function.Function;
  * and a background writer thread appends them to the file in order. {@link #load} sees
  * every save and delete made before it, whether the writer has appended it yet or not.
  * Every method is safe to call from any thread.
+ *
+ * <p>Appended writes reach the operating system at once and the disk when it decides, or after
+ * {@link #flush()} or {@link #close()}. A crash of the server loses only the writes still queued;
+ * a power loss also loses the ones not synced yet.
  *
  * <p>If the writer can't write, such as when the disk is full, it stops and logs the error:
  * later saves, deletes and {@link #close()} throw {@link IllegalStateException} with the cause.
@@ -103,7 +108,22 @@ public interface KVRepository<K, V> {
     void unloadFromCache(@NotNull K key);
 
     /**
-     * Flushes all pending writes and closes the underlying file.
+     * Syncs to the disk every save and delete made before this call, so neither a crash nor a
+     * power loss after the returned future completes loses them.
+     *
+     * <p>Doesn't block. The writer thread syncs once for all flushes of a batch of writes, but
+     * each sync is a disk write: call it for writes that must not be lost, not after every save.
+     * The future completes on the writer thread, so callbacks attached without an async method
+     * run there: they must be short and must not wait for this repository.
+     *
+     * @return a future that completes once the writes are on the disk, or completes
+     *         exceptionally if the writer stops before that
+     * @throws IllegalStateException if the repository is closed or its writer has stopped
+     */
+    CompletableFuture<Void> flush();
+
+    /**
+     * Flushes all pending writes, syncs them to the disk and closes the underlying file.
      *
      * <p>Blocks until the background writer thread finishes processing all
      * queued tasks, even if the calling thread is interrupted. After this call

@@ -295,7 +295,24 @@ class DiskRepositoryTest {
         assertThrows(IllegalStateException.class, () -> repo.save("key", "value"));
         assertThrows(IllegalStateException.class, () -> repo.delete("key"));
         assertThrows(IllegalStateException.class, () -> repo.load("key"));
+        assertThrows(IllegalStateException.class, repo::flush);
         assertDoesNotThrow(repo::close);
+    }
+
+    @Test
+    void flushCompletesAfterEarlierWrites(@TempDir Path dir) throws Exception {
+        var repo = open(dir);
+        for (int i = 0; i < 200; i++) repo.save("key-" + i, "value-" + i);
+        repo.delete("key-0");
+        repo.flush().get(5, TimeUnit.SECONDS);
+        repo.close();
+
+        var repo2 = open(dir);
+        assertEquals(Optional.empty(), repo2.load("key-0"));
+        for (int i = 1; i < 200; i++) {
+            assertEquals(Optional.of("value-" + i), repo2.load("key-" + i));
+        }
+        repo2.close();
     }
 
     // -------------------------------------------------------------------------

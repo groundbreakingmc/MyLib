@@ -15,11 +15,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -111,7 +114,7 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     // Internal types
     // -------------------------------------------------------------------------
 
-    private sealed interface Task permits Write, Stop {
+    private sealed interface Task permits Write, Flush, Stop {
     }
 
     /**
@@ -123,6 +126,9 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
         boolean isDelete() {
             return this.value == null;
         }
+    }
+
+    private record Flush(CompletableFuture<Void> done) implements Task {
     }
 
     private enum Stop implements Task {
@@ -289,6 +295,19 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     }
 
     @Override
+    public CompletableFuture<Void> flush() {
+        final Flush flush = new Flush(new CompletableFuture<>());
+        this.lock.writeLock().lock();
+        try {
+            this.checkWritable();
+            this.writeQueue.add(flush);
+        } finally {
+            this.lock.writeLock().unlock();
+        }
+        return flush.done();
+    }
+
+    @Override
     public void close() {
         this.lock.writeLock().lock();
         try {
@@ -311,10 +330,11 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
         }
         if (interrupted) Thread.currentThread().interrupt();
 
-        try {
-            this.file.close();
+        try (FileChannel channel = this.file) {
+            // What the writer appended reaches the disk before the file closes.
+            if (this.failure == null) channel.force(true);
         } catch (IOException ex) {
-            throw new UncheckedIOException("Can't close " + this.path, ex);
+            throw new UncheckedIOException("Can't sync and close " + this.path, ex);
         }
 
         final Throwable failure = this.failure;
@@ -332,14 +352,19 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
         return new ByteArrayKey(this.keyEncoder.encode(key));
     }
 
+    // Called under the write lock.
+    private void checkWritable() {
+        if (this.closed) throw new IllegalStateException("The repository is closed: " + this.path);
+        if (this.failure != null) {
+            throw new IllegalStateException("The writer of " + this.path
+                    + " stopped, so writes are no longer saved", this.failure);
+        }
+    }
+
     private void enqueue(@NotNull Write<V> write) {
         this.lock.writeLock().lock();
         try {
-            if (this.closed) throw new IllegalStateException("The repository is closed: " + this.path);
-            if (this.failure != null) {
-                throw new IllegalStateException("The writer of " + this.path
-                        + " stopped, so writes are no longer saved", this.failure);
-            }
+            this.checkWritable();
 
             this.pending.put(write.key(), write);
             if (this.cache != null) {
@@ -355,33 +380,54 @@ final class DiskRepository<K, V> implements KVRepository<K, V> {
     }
 
     private void writerLoop() {
+        final List<CompletableFuture<Void>> flushes = new ArrayList<>();
         try {
             while (true) {
+                // A batch: the tasks queued so far, up to batchSize writes.
                 Task task = this.writeQueue.take();
                 int written = 0;
-                while (task instanceof Write<?> write) {
-                    this.append(write);
-                    if (++written == this.config.batchSize()) break;
+                boolean stopping = false;
+                while (task != null) {
+                    switch (task) {
+                        case Write<?> write -> {
+                            this.append(write);
+                            written++;
+                        }
+                        case Flush flush -> flushes.add(flush.done());
+                        case Stop stop -> stopping = true;
+                    }
+                    if (stopping || written == this.config.batchSize()) break;
                     task = this.writeQueue.poll();
                 }
-                if (task == Stop.INSTANCE) return;
+
+                // One sync for all flushes of the batch.
+                if (!flushes.isEmpty()) {
+                    this.file.force(true);
+                    for (final CompletableFuture<Void> done : flushes) done.complete(null);
+                    flushes.clear();
+                }
+                if (stopping) return;
                 this.checkAndCompact();
             }
         } catch (Throwable th) {
-            this.stopWriting(th);
+            this.stopWriting(th, flushes);
         }
     }
 
     // Later writes are refused: they would only pile up in the queue, unsaved.
-    private void stopWriting(@NotNull Throwable cause) {
+    private void stopWriting(@NotNull Throwable cause, @NotNull List<CompletableFuture<Void>> flushes) {
         this.lock.writeLock().lock();
         try {
             this.failure = cause;
+            for (final Task task : this.writeQueue) {
+                if (task instanceof Flush flush) flushes.add(flush.done());
+            }
             this.writeQueue.clear();
         } finally {
             this.lock.writeLock().unlock();
         }
         LOGGER.log(System.Logger.Level.ERROR, "The writer of " + this.path + " stopped; later writes are refused", cause);
+        for (final CompletableFuture<Void> done : flushes) done.completeExceptionally(cause);
     }
 
     // -------------------------------------------------------------------------
