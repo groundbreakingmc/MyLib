@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -41,6 +42,8 @@ public class CommandRuntimeUtils {
     private final Map<String, Command> KNOWN_COMMANDS;
     // Plugins whose players get the commands on the next tick.
     private final Set<Plugin> PENDING_SYNCS = ConcurrentHashMap.newKeySet();
+    // The commands each registered command took labels from, such as vanilla msg, to give back on unregister.
+    private final Map<Command, Map<String, Command>> DISPLACED = new ConcurrentHashMap<>();
 
     /**
      * Registers a command with a tab executor (handles both execution and tab completion).
@@ -53,7 +56,7 @@ public class CommandRuntimeUtils {
     public PluginCommand register(@NotNull Plugin plugin,
                                   @NotNull String command,
                                   @NotNull TabExecutor tabExecutor) {
-        return register(plugin, command, null, tabExecutor, tabExecutor);
+        return register(plugin, command, null, tabExecutor, tabExecutor, false);
     }
 
     /**
@@ -73,6 +76,24 @@ public class CommandRuntimeUtils {
     }
 
     /**
+     * Registers a command with a tab executor under labels that other commands may already hold.
+     * The first element of {@code aliases} is used as the command name, the remaining elements are
+     * registered as aliases. Unlike {@code register}, it takes every label from the command that
+     * holds it, another plugin's included; {@link #unregisterCommand(Command)} gives them back.
+     *
+     * @param plugin      plugin instance
+     * @param aliases     list where the first element is the command name and the rest are aliases
+     * @param tabExecutor tab executor
+     * @return the registered command, to pass to {@link #unregisterCommand(Command)}
+     */
+    public PluginCommand registerOverriding(@NotNull Plugin plugin,
+                                            @NotNull List<String> aliases,
+                                            @NotNull TabExecutor tabExecutor) {
+        final List<String> rest = aliases.size() > 1 ? aliases.subList(1, aliases.size()) : null;
+        return register(plugin, aliases.get(0), rest, tabExecutor, tabExecutor, true);
+    }
+
+    /**
      * Registers a command with executor and optional tab completer.
      *
      * @param plugin          plugin instance
@@ -85,7 +106,7 @@ public class CommandRuntimeUtils {
                                   @NotNull String command,
                                   @NotNull CommandExecutor commandExecutor,
                                   @Nullable TabCompleter tabCompleter) {
-        return register(plugin, command, null, commandExecutor, tabCompleter);
+        return register(plugin, command, null, commandExecutor, tabCompleter, false);
     }
 
     /**
@@ -105,7 +126,7 @@ public class CommandRuntimeUtils {
                                   @Nullable TabCompleter tabCompleter) {
         final String command = aliases.get(0);
         final List<String> rest = aliases.size() > 1 ? aliases.subList(1, aliases.size()) : null;
-        return register(plugin, command, rest, commandExecutor, tabCompleter);
+        return register(plugin, command, rest, commandExecutor, tabCompleter, false);
     }
 
     /**
@@ -116,13 +137,15 @@ public class CommandRuntimeUtils {
      * @param aliases         command aliases (nullable)
      * @param commandExecutor command executor
      * @param tabCompleter    tab completer (nullable)
+     * @param override        whether to take labels from other plugins' commands too
      * @return the registered command
      */
     private PluginCommand register(@NotNull Plugin plugin,
                                    @NotNull String command,
                                    @Nullable List<String> aliases,
                                    @NotNull CommandExecutor commandExecutor,
-                                   @Nullable TabCompleter tabCompleter) {
+                                   @Nullable TabCompleter tabCompleter,
+                                   boolean override) {
         final PluginCommand pluginCommand = createCommand(plugin, command);
         pluginCommand.setExecutor(commandExecutor);
         if (tabCompleter != null) {
@@ -134,11 +157,40 @@ public class CommandRuntimeUtils {
             pluginCommand.setAliases(new ArrayList<>(aliases));
         }
 
-        // A label another plugin already holds stays theirs; the command still gets "plugin:label".
+        final Map<String, Command> previous = new HashMap<>();
+        for (final String label : labels(command, aliases)) {
+            final Command holder = KNOWN_COMMANDS.get(label);
+            if (holder == null) {
+                continue;
+            }
+            previous.put(label, holder);
+            if (override) {
+                KNOWN_COMMANDS.remove(label);
+            }
+        }
+
+        // Vanilla labels are taken over on Paper. Without override, a label another plugin holds stays
+        // theirs, and the command still gets "plugin:label".
         COMMAND_MAP.register(plugin.getName(), pluginCommand);
 
+        previous.keySet().removeIf(label -> KNOWN_COMMANDS.get(label) != pluginCommand);
+        if (!previous.isEmpty()) {
+            DISPLACED.put(pluginCommand, previous);
+        }
         syncLater(plugin);
         return pluginCommand;
+    }
+
+    // The labels the command map gives a command: its name and aliases, lowercased and trimmed.
+    private List<String> labels(@NotNull String command, @Nullable List<String> aliases) {
+        final List<String> labels = new ArrayList<>();
+        labels.add(command.toLowerCase(Locale.ROOT).trim());
+        if (aliases != null) {
+            for (final String alias : aliases) {
+                labels.add(alias.toLowerCase(Locale.ROOT).trim());
+            }
+        }
+        return labels;
     }
 
     /**
@@ -177,12 +229,23 @@ public class CommandRuntimeUtils {
     /**
      * Unregisters a command under every label that leads to it, the {@code plugin:label} forms
      * included. A label that leads to another command, such as an alias another plugin took first,
-     * stays theirs.
+     * stays theirs. The commands it took labels from, such as vanilla {@code msg}, get them back,
+     * unless something else holds them by now or they were unregistered themselves.
      *
      * @param command command instance
      */
     public void unregisterCommand(@NotNull Command command) {
         KNOWN_COMMANDS.values().removeIf(known -> known == command);
+
+        final Map<String, Command> displaced = DISPLACED.remove(command);
+        if (displaced != null) {
+            for (final Map.Entry<String, Command> entry : displaced.entrySet()) {
+                // Only get, put and containsKey reach Paper's Brigadier: see KNOWN_COMMANDS.
+                if (entry.getValue().isRegistered() && !KNOWN_COMMANDS.containsKey(entry.getKey())) {
+                    KNOWN_COMMANDS.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
 
         // So the command can be registered again.
         command.unregister(COMMAND_MAP);
