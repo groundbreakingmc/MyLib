@@ -95,6 +95,8 @@ public final class ConfigFactory {
 
         @Nullable
         private ConfigBackend backend;
+        @Nullable
+        private ConfigUpdater updater;
         private double version = 0.0;
         private String versionPath = "config-version";
 
@@ -111,6 +113,16 @@ public final class ConfigFactory {
          */
         public Builder version(double version) {
             this.version = version;
+            return this;
+        }
+
+        /**
+         * Updates an outdated file instead of replacing it: when the version doesn't match, the
+         * file is backed up as before, then the updater rewrites it from the default resource,
+         * keeping what the user set. Needs a {@link #version(double)}.
+         */
+        public Builder updater(@NotNull ConfigUpdater updater) {
+            this.updater = updater;
             return this;
         }
 
@@ -181,8 +193,12 @@ public final class ConfigFactory {
             if (this.version != 0.0) {
                 final Double actual = source.decimal(this.versionPath);
                 if (actual == null || actual != this.version) {
-                    this.backup(this.configFile);
-                    this.copyDefault(this.configFile);
+                    if (this.updater != null) {
+                        this.update(this.configFile, this.updater);
+                    } else {
+                        this.backup(this.configFile);
+                        this.copyDefault(this.configFile);
+                    }
                     source = backend.load(this.configFile);
                 }
             }
@@ -205,6 +221,25 @@ public final class ConfigFactory {
                 Files.copy(in, dest.toPath());
             } catch (IOException e) {
                 throw new RuntimeException("Failed to copy default config \"" + resourceName + "\"", e);
+            }
+        }
+
+        // The file stays where it is: a copy is the backup, and the updater rewrites the original.
+        private void update(File file, ConfigUpdater updater) {
+            if (this.resources == null) {
+                throw new IllegalStateException(
+                        "Config \"" + file.getName() + "\" is outdated and no resource supplier was provided."
+                );
+            }
+            final String resourceName = file.getName();
+            try (final InputStream in = this.resources.apply(resourceName)) {
+                if (in == null) throw new IllegalArgumentException("Resource not found in jar: " + resourceName);
+                final File parent = file.getParentFile();
+                final int n = Objects.requireNonNull(parent.listFiles()).length;
+                Files.copy(file.toPath(), new File(parent, "backup_" + n + "_" + file.getName()).toPath());
+                updater.update(file, in);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to update config \"" + resourceName + "\"", e);
             }
         }
 
