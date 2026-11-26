@@ -12,7 +12,6 @@ paper-api = { module = "io.papermc.paper:paper-api", version = "1.21.11-R0.1-SNA
 vault-api = { module = "com.github.MilkBowl:VaultAPI", version = "1.7.1" }
 luckperms-api = { module = "net.luckperms:api", version = "5.4" }
 worldguard-bukkit = { module = "com.sk89q.worldguard:worldguard-bukkit", version = "7.0.5" }
-supervanish = { module = "com.github.LeonMangler:SuperVanish", version = "6.2.19" }
 
 # Mojang
 authlib = { module = "com.mojang:authlib", version = "3.13.56" }

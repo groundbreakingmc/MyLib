@@ -1,7 +1,6 @@
 package com.github.groundbreakingmc.mylib.command;
 
 import com.github.groundbreakingmc.mylib.vanish.VisibleChecker;
-import com.github.groundbreakingmc.mylib.vanish.VisibleCheckerFactory;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
@@ -124,7 +123,7 @@ public final class CommandUtils {
     /**
      * Completes the last argument with the names of all online players, hidden ones included.
      * To leave out players the sender can't see, use
-     * {@link #smartTabCompletePlayerNames(CommandSender, String[], VisibleChecker)}.
+     * {@link #smartTabCompletePlayerNames(CommandSender, String[])}.
      *
      * @param args the arguments
      * @return the matching names
@@ -205,44 +204,37 @@ public final class CommandUtils {
      * Completes the last argument with the names of online players the sender can see. A player
      * doesn't get the ones hidden from them, such as vanished players; the console gets everyone.
      *
-     * @param sender         who completes
-     * @param args           the arguments
-     * @param visibleChecker the vanish plugin's own check, from {@link VisibleCheckerFactory#create()},
-     *                       or {@code null} to rely on {@link Player#canSee(Player)} alone
+     * @param sender who completes
+     * @param args   the arguments
      * @return the matching names
      */
     @NotNull
-    public static List<String> smartTabCompletePlayerNames(@NotNull CommandSender sender, @NotNull String[] args, @Nullable VisibleChecker visibleChecker) {
+    public static List<String> smartTabCompletePlayerNames(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == 0) {
             return List.of();
         }
 
         final String input = args[args.length - 1];
         return sender instanceof Player player
-                ? smartTabCompletePlayerNames(player, input, visibleChecker)
+                ? smartTabCompletePlayerNames(player, input)
                 : tabCompletePlayerNames(input);
     }
 
     /**
-     * Completes an input with the names of online players the sender can see.
+     * Completes an input with the names of online players the sender can see, by
+     * {@link VisibleChecker#canSee}.
      *
-     * <p>Vanish plugins hide players with {@link Player#hidePlayer}, see-permissions applied, so
-     * {@link Player#canSee(Player)} leaves them out on its own. The checker is asked as well, for
-     * plugins that also hide players by other means, such as PremiumVanish with packets.
-     *
-     * @param sender         who completes
-     * @param input          the typed part of the name
-     * @param visibleChecker the vanish plugin's own check, from {@link VisibleCheckerFactory#create()},
-     *                       or {@code null} to rely on {@link Player#canSee(Player)} alone
+     * @param sender who completes
+     * @param input  the typed part of the name
      * @return the matching names
      */
     @NotNull
-    public static List<String> smartTabCompletePlayerNames(@NotNull Player sender, @NotNull String input, @Nullable VisibleChecker visibleChecker) {
+    public static List<String> smartTabCompletePlayerNames(@NotNull Player sender, @NotNull String input) {
         final Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
         final List<String> completions = new ObjectArrayList<>(onlinePlayers.size());
 
         for (final Player player : onlinePlayers) {
-            if (!sender.canSee(player) || visibleChecker != null && !visibleChecker.canSee(sender, player)) {
+            if (!VisibleChecker.canSee(sender, player)) {
                 continue;
             }
             final String playerName = player.getName();

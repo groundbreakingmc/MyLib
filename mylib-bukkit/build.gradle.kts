@@ -30,7 +30,6 @@ dependencies {
     compileOnly(libs.worldguard.bukkit) {
         exclude(group = "org.spigotmc", module = "spigot-api")
     }
-    compileOnly(libs.supervanish)
 
     // Mojang
     compileOnly(libs.authlib)

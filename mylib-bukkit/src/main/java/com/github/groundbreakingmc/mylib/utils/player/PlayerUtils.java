@@ -5,25 +5,12 @@ import com.github.groundbreakingmc.mylib.utils.player.settings.SoundSettings;
 import com.github.groundbreakingmc.mylib.utils.player.settings.TitleSettings;
 import lombok.experimental.UtilityClass;
 import org.bukkit.entity.Player;
-import org.bukkit.metadata.MetadataValue;
 import org.bukkit.potion.PotionEffect;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.List;
 
 @UtilityClass
 public final class PlayerUtils {
-
-    public static boolean isVanished(final @Nullable Player player) {
-        if (player == null) {
-            return false;
-        }
-
-        final List<MetadataValue> metadata = player.getMetadata("vanished");
-        final Object value; // The value has not to be null, but who knows what kind of shit can happen
-        return !metadata.isEmpty() && (value = metadata.get(0).value()) != null && (Boolean) value;
-    }
 
     public static void broadcast(final Collection<? extends Player> players, final String message) {
         for (final Player player : players) {
